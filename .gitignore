@@ -1,0 +1,111 @@
+# ========================================
+# OS, Editor, IDE 관련 파일들
+# ========================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ========================================
+# Node.js (React 관련)
+# ========================================
+node_modules/
+bower_components/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# ========================================
+# Python, Django 및 가상환경 관련
+# ========================================
+# 파이썬 컴파일된 파일
+*.py[cod]
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 가상환경
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 파이썬 패키지 정보
+*.egg-info/
+.eggs/
+
+# Django 관련 (필요에 따라 데이터베이스 파일 및 로그는 포함/제외)
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Static 및 Media 파일 (빌드 결과물로 생성된 경우)
+media/
+staticfiles/
+
+# 환경 변수 및 비밀정보 파일
+.env
+*.env
+
+# ========================================
+# 데이터베이스 및 캐시 관련
+# ========================================
+*.sql
+*.sqlite3
+
+# Redis 데이터 파일
+dump.rdb
+
+# ========================================
+# 머신러닝/딥러닝 아티팩트 (TensorFlow, PyTorch, stable-baselines3 등)
+# ========================================
+checkpoints/
+*.ckpt
+events.out.tfevents.*
+*.pb
+saved_models/
+hparams.yaml
+
+# ========================================
+# 테스팅 도구 (Selenium, Playwright)
+# ========================================
+playwright-report/
+test-results/
+screenshots/
+videos/
+
+# ========================================
+# Docker 관련
+# ========================================
+docker-compose.override.yml
+
+# Docker 관련 구성 파일(필요시)
+docker-compose*.yml
+Dockerfile*
+*.dockerfile
+
+# ========================================
+# DevOps 및 기타 임시 파일
+# ========================================
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# NGINX 관련
+nginx/logs/
+nginx/conf.d/
+
+# ========================================
+# GitHub Actions 관련
+# ========================================
+.github/actions/output/
