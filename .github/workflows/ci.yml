@@ -1,0 +1,74 @@
+name: Docker Compose CI
+
+on:
+  push:
+    branches:
+      - dev   
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_PORT: 3306
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+     
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          echo "DB_NAME=${{ env.DB_NAME }}" > .env
+          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
+          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
+          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
+          
+         
+      - name: Create SSL files
+        run: |
+          mkdir -p ./nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Docker Compose Build and Up
+        run: docker-compose up --build -d
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            docker-compose exec -T db mysqladmin ping -h localhost --silent && break
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+      - name: Run Gradle Tests in Docker
+        run: docker-compose run --rm test
+
+      - name: Start Backend Container
+        run: docker-compose up -d backend
+
+      - name: Check Backend Container Logs
+        run: docker-compose logs backend
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
+
+      - name: Upload Test Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: Back/build/reports/tests/test
