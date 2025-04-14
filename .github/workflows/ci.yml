@@ -30,7 +30,6 @@ jobs:
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
           
-         
       - name: Create SSL files
         run: |
           mkdir -p ./nginx/ssl
@@ -53,7 +52,7 @@ jobs:
             sleep 2
           done
 
-      - name: Run Gradle Tests in Docker
+      - name: Run Django Tests in Docker
         run: docker-compose run --rm test
 
       - name: Start Backend Container
