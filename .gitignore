@@ -88,9 +88,9 @@ videos/
 docker-compose.override.yml
 
 # Docker 관련 구성 파일(필요시)
-docker-compose*.yml
-Dockerfile*
-*.dockerfile
+#docker-compose*.yml
+#Dockerfile*
+#*.dockerfile
 
 # ========================================
 # DevOps 및 기타 임시 파일
@@ -103,7 +103,7 @@ temp/
 
 # NGINX 관련
 nginx/logs/
-nginx/conf.d/
+#nginx/conf.d/
 
 # ========================================
 # GitHub Actions 관련

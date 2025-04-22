@@ -1,50 +1,58 @@
+# .github/workflows/docker-compose-ci.yml
 name: Docker Compose CI
 
 on:
   push:
-    branches:
-      - dev   
+    branches: [ dev ]
   pull_request:
-    branches:
-      - dev
+    branches: [ dev ]
 
 jobs:
-  build-and-run:
+  build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     env:
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USERNAME: ${{ secrets.DB_USERNAME }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_PORT: 3306
+      DB_NAME:             ${{ secrets.DB_NAME }}
+      DB_USERNAME:         ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
+      DB_PORT:             3306
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-     
+
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug workspace contents
+        run: |
+          echo "PWD: $PWD"
+          ls -R .
 
       - name: Create .env file
         run: |
-          echo "DB_NAME=${{ env.DB_NAME }}" > .env
-          echo "DB_USERNAME=${{ env.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
-          echo "DB_PORT=${{ env.DB_PORT }}" >> .env
-          
+          cat <<EOF > .env
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USERNAME=${{ env.DB_USERNAME }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          DB_PORT=${{ env.DB_PORT }}
+          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          EOF
+
       - name: Create SSL files
         run: |
-          mkdir -p ./nginx/ssl
-          echo "${{ secrets.SSL_CERT }}" > ./nginx/ssl/fullchain.pem
-          echo "${{ secrets.SSL_KEY }}" > ./nginx/ssl/privkey.pem
+          mkdir -p nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY  }}" > nginx/ssl/privkey.pem
 
       - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      - name: Docker Compose Build and Up
+      - name: Build & start all services
         run: docker-compose up --build -d
 
-      - name: Wait for MySQL
+      - name: Wait for MySQL healthy
         run: |
           for i in {1..30}; do
             docker-compose exec -T db mysqladmin ping -h localhost --silent && break
@@ -52,22 +60,20 @@ jobs:
             sleep 2
           done
 
-      - name: Run Django Tests in Docker
+      - name: Run Django tests
         run: docker-compose run --rm test
 
-      - name: Start Backend Container
-        run: docker-compose up -d backend
-
-      - name: Check Backend Container Logs
+      - name: Collect backend logs
+        if: success()
         run: docker-compose logs backend
 
-      - name: Stop containers
+      - name: Teardown containers
         if: always()
         run: docker-compose down
 
-      - name: Upload Test Report
+      - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: Back/build/reports/tests/test
+          path: BACK/reagan/build/reports/tests/test
