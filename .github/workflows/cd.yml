@@ -1,0 +1,56 @@
+name: CD to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # (Optional) 로그 확인용 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # SSH 키 에이전트에 로드
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      # 실제 배포 스크립트 실행
+      - name: Deploy to Prod
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host:     ${{ secrets.SERVER_HOST }}        # 예: reagan.mjsec.kr
+          username: ${{ secrets.SERVER_USER }}        # 예: mjsec0710
+          port:     ${{ secrets.SERVER_SSH_PORT }}    # 보통 22
+          script: |
+            # 1) GitHub 호스트 키 등록 (원격 서버에서 Git clone 시 필요)
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+            # 2) 리포지터리 SSH URL 및 앱 디렉터리 설정
+            REPO_SSH="git@github.com:MJSEC-MJU/Reagan.git"
+            APP_DIR="/home/${{ secrets.SERVER_USER }}/app"
+
+            # 3) 디렉터리가 없으면 클론
+            if [ ! -d "$APP_DIR" ]; then
+              git clone "$REPO_SSH" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            # 4) 항상 최신 main 상태로 리셋
+            git fetch --all
+            git reset --hard origin/main
+
+            # 5) Docker Hub 로그인
+            echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" \
+              | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+            # 6) 최신 이미지 pull & 컨테이너 재시작
+            docker-compose pull
+            docker-compose up -d --remove-orphans
