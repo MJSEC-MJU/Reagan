@@ -1,5 +1,5 @@
 # .github/workflows/cd.yml
-name: CD to Production
+name: CD to GCP Cloud Run
 
 on:
   push:
@@ -9,41 +9,75 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code (for context/logs)
+      # 1) 코드 체크아웃
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Production via SSH
-        uses: appleboy/ssh-action@v0.1.7
+      # 2) GCP 인증
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
         with:
-          host:     ${{ secrets.SERVER_HOST }}         # ex: reagan.mjsec.kr
-          username: ${{ secrets.SERVER_USER }}         # ex: mjsec0710
-          key:      ${{ secrets.SERVER_SSH_KEY }}      # SSH private key
-          port:     ${{ secrets.SERVER_SSH_PORT }}     # 보통 22
-          script: |
-            # 등록된 GitHub 호스트키를 known_hosts에 추가
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-            REPO_SSH="git@github.com:MJSEC-MJU/Reagan.git"
-            APP_DIR="/home/${{ secrets.SERVER_USER }}/app"
+      # 3) gcloud 설치 및 초기설정
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id:            ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials: true
 
-            # 1) APP_DIR이 없으면 클론
-            if [ ! -d "$APP_DIR" ]; then
-              git clone "$REPO_SSH" "$APP_DIR"
-            fi
+      # 4) Docker Hub 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-            cd "$APP_DIR"
+      # 5) Backend 이미지 빌드 & Push to GCR
+      - name: Build & Push Backend to GCR
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-backend:${{ github.sha }}"
+          docker build -t $IMAGE -f BACK/reagan/dockerfile .
+          docker push $IMAGE
 
-            # 2) 항상 최신 main으로 리셋
-            git fetch --all
-            git reset --hard origin/main
+      # 6) Frontend 이미지 빌드 & Push to GCR
+      - name: Build & Push Frontend to GCR
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-frontend:${{ github.sha }}"
+          docker build -t $IMAGE -f frontend/dockerfile .
+          docker push $IMAGE
 
-            # 3) Docker Hub 로그인
-            echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" \
-              | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+      # 7) Nginx 이미지 빌드 & Push to GCR
+      - name: Build & Push Nginx to GCR
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-nginx:${{ github.sha }}"
+          docker build -t $IMAGE -f nginx/Dockerfile .
+          docker push $IMAGE
 
-            # 4) 최신 이미지 pull & 컨테이너 재기동
-            docker-compose pull
-            docker-compose up -d --remove-orphans
+      # 8) Cloud Run에 배포
+      - name: Deploy Backend to Cloud Run
+        run: |
+          gcloud run deploy reagan-backend \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-backend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ secrets.GCP_REGION }} \
+            --allow-unauthenticated
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          gcloud run deploy reagan-frontend \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-frontend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ secrets.GCP_REGION }} \
+            --allow-unauthenticated
+
+      - name: Deploy Nginx to Cloud Run
+        run: |
+          gcloud run deploy reagan-nginx \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-nginx:${{ github.sha }} \
+            --platform managed \
+            --region ${{ secrets.GCP_REGION }} \
+            --allow-unauthenticated
