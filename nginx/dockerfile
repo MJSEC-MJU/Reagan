@@ -1,7 +1,4 @@
-# nginx/Dockerfile
 FROM nginx:latest
-
-# main 설정 덮어쓰기
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
 # 사이트별 server 블록 덮어쓰기
