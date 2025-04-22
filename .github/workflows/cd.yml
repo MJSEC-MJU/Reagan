@@ -26,10 +26,10 @@ jobs:
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id:            ${{ secrets.GCP_PROJECT_ID }}
-          export_default_credentials: true
+          project_id:                  ${{ secrets.GCP_PROJECT_ID }}
+          export_default_credentials:  true
 
-      # 4) Docker Hub 로그인
+      # 4) Docker Hub 로그인
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -40,21 +40,30 @@ jobs:
       - name: Build & Push Backend to GCR
         run: |
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-backend:${{ github.sha }}"
-          docker build -t $IMAGE -f BACK/reagan/dockerfile .
+          docker build \
+            -f BACK/reagan/dockerfile \
+            -t $IMAGE \
+            BACK/reagan
           docker push $IMAGE
 
       # 6) Frontend 이미지 빌드 & Push to GCR
       - name: Build & Push Frontend to GCR
         run: |
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-frontend:${{ github.sha }}"
-          docker build -t $IMAGE -f frontend/dockerfile .
+          docker build \
+            -f frontend/dockerfile \
+            -t $IMAGE \
+            frontend
           docker push $IMAGE
 
       # 7) Nginx 이미지 빌드 & Push to GCR
       - name: Build & Push Nginx to GCR
         run: |
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/reagan-nginx:${{ github.sha }}"
-          docker build -t $IMAGE -f nginx/Dockerfile .
+          docker build \
+            -f nginx/Dockerfile \
+            -t $IMAGE \
+            nginx
           docker push $IMAGE
 
       # 8) Cloud Run에 배포
