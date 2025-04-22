@@ -35,16 +35,15 @@ services:
       - reagan-network
 
   backend:
-    # 백엔드(Django) 빌드는 BACK/reagan 폴더 안에 있는 dockerfile을 사용
     build:
       context: ./BACK/reagan
-      dockerfile: ./dockerfile
+      dockerfile: dockerfile
     container_name: reagan-backend
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "8080:8000"  # 컨테이너 내부 포트(8000)를 호스트의 8080 포트와 매핑
+      - "8080:8000"
     environment:
       DB_HOST: db
       DB_PORT: ${DB_PORT}
@@ -52,32 +51,27 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - ./BACK/reagan:/app  # 소스 수정 시 실시간 반영 (개발 시 유용)
+      - ./BACK/reagan:/app
     networks:
       - reagan-network
 
   frontend:
-    # 프론트엔드(React) 빌드는 frontend 폴더 안에 있는 dockerfile을 사용
     build:
       context: ./frontend
-      dockerfile: ./dockerfile
+      dockerfile: dockerfile
     container_name: reagan-frontend
     depends_on:
       - backend
-    # React 정적 빌드를 nginx 없이 확인하려면 포트 매핑
-    # (만약 Nginx에서만 서빙할 예정이라면 이 부분을 expose로 유지)
     ports:
       - "3000:80"
     networks:
       - reagan-network
 
   nginx:
-    # 로컬에서 별도 Dockerfile로 Nginx 이미지를 빌드하고 싶다면 설정
-    # 여기서는 Docker Hub에 올려두신 이미지를 사용한다고 가정
-    # build:
-    #   context: ./nginx
-    #   dockerfile: ./Dockerfile
-    image: ${DOCKER_HUB_USERNAME}/nginx:latest
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: reagan-nginx:latest
     container_name: reagan-nginx
     depends_on:
       - backend
@@ -87,16 +81,14 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/ssl:/etc/letsencrypt/live/msg.mjsec.kr:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     networks:
       - reagan-network
 
   test:
-    # Django 테스트를 실행할 서비스
-    # 로컬 빌드를 사용하려면 build 옵션을 사용하거나, 아래처럼 이미지를 참조
     build:
       context: ./BACK/reagan
-      dockerfile: ./dockerfile
+      dockerfile: dockerfile
     container_name: reagan-test
     command: python manage.py test
     depends_on:
