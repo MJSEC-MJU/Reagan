@@ -103,7 +103,7 @@ temp/
 
 # NGINX 관련
 nginx/logs/
-nginx/conf.d/
+#nginx/conf.d/
 
 # ========================================
 # GitHub Actions 관련
