@@ -30,20 +30,19 @@ jobs:
 
       - name: Create .env file
         run: |
-          cat > .env <<EOF
-DB_NAME=${{ env.DB_NAME }}
-DB_USERNAME=${{ env.DB_USERNAME }}
-DB_PASSWORD=${{ env.DB_PASSWORD }}
-DB_PORT=${{ env.DB_PORT }}
-DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
-EOF
+          cat <<EOF > .env
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USERNAME=${{ env.DB_USERNAME }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          DB_PORT=${{ env.DB_PORT }}
+          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          EOF
 
       - name: Create SSL files
         run: |
           mkdir -p nginx/ssl
-          echo "${{ secrets.SSL_CERT }}"    > nginx/ssl/fullchain.pem
-          echo "${{ secrets.SSL_KEY  }}"    > nginx/ssl/privkey.pem
-          ls -l nginx/ssl
+          echo "${{ secrets.SSL_CERT }}" > nginx/ssl/fullchain.pem
+          echo "${{ secrets.SSL_KEY  }}" > nginx/ssl/privkey.pem
 
       - name: Install Docker Compose
         run: |
@@ -51,12 +50,11 @@ EOF
           sudo apt-get install -y docker-compose
 
       - name: Build & start all services
-        working-directory: ${{ github.workspace }}
         run: docker-compose up --build -d
 
       - name: Wait for MySQL healthy
         run: |
-          for i in $(seq 1 30); do
+          for i in {1..30}; do
             docker-compose exec -T db mysqladmin ping -h localhost --silent && break
             echo "Waiting for MySQL..."
             sleep 2
