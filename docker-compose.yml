@@ -2,6 +2,9 @@ version: '3.8'
 
 services:
   backend:
+    build:
+      context: ./BACK/reagan
+      dockerfile: dockerfile
     image: ${DOCKER_HUB_USERNAME}/reagan-backend:latest
     container_name: reagan-backend
     restart: always
@@ -16,6 +19,9 @@ services:
       - app-network
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
     image: ${DOCKER_HUB_USERNAME}/reagan-frontend:latest
     container_name: reagan-frontend
     restart: always
@@ -25,6 +31,9 @@ services:
       - app-network
 
   nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     image: ${DOCKER_HUB_USERNAME}/reagan-nginx:latest
     container_name: reagan-nginx
     restart: always

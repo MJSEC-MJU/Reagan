@@ -1,4 +1,5 @@
-name: Docker Compose CI & Push
+# .github/workflows/docker-compose-ci.yml
+name: Docker Compose CI & Deploy
 
 on:
   push:
@@ -11,7 +12,6 @@ env:
   DB_USERNAME:         ${{ secrets.DB_USERNAME }}
   DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
   DB_PORT:             3306
-  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
 jobs:
   build-and-test:
@@ -23,19 +23,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env (no leading spaces!)
+      - name: Create .env
         run: |
           cat > .env <<EOF
           DB_NAME=${DB_NAME}
           DB_USERNAME=${DB_USERNAME}
           DB_PASSWORD=${DB_PASSWORD}
           DB_PORT=${DB_PORT}
-          DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
           EOF
-      - name: Dump .env (for debug)
-        run: |
-          echo "--- .env content ---"
-          cat .env
 
       - name: Create SSL files
         run: |
@@ -44,10 +39,9 @@ jobs:
           echo "${{ secrets.SSL_KEY  }}" > nginx/ssl/privkey.pem
 
       - name: Install Docker Compose
-        run: sudo apt-get update && sudo apt-get install -y docker-compose
-
-      - name: Validate docker-compose config
-        run: docker-compose config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Start all services
         run: docker-compose up --build -d
@@ -66,58 +60,52 @@ jobs:
         if: always()
         run: docker-compose down
 
-      - name: Upload test report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report
-          path: BACK/reagan/build/reports/tests/test
-
-  push-images:
-    name: Build & Push Docker Images
+  deploy:
+    name: Deploy to VM
     needs: build-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    env:
-      IMAGE_TAG: dev-${{ github.sha }}
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets.SERVER_SSH_KEY }}
+          port:     ${{ secrets.SERVER_SSH_PORT }}
+          script: |
+            set -e
 
-      - name: Build & Push Backend
-        uses: docker/build-push-action@v4
-        with:
-          context: ./BACK/reagan
-          file: dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-backend:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-backend:latest
+            # 1) 서버 ~/.ssh/known_hosts에 GitHub 키 추가
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
-      - name: Build & Push Frontend
-        uses: docker/build-push-action@v4
-        with:
-          context: ./frontend
-          file: dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-frontend:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-frontend:latest
+            # 2) 필요한 패키지(한 번만)
+            sudo apt-get update
+            sudo apt-get install -y docker.io docker-compose git
 
-      - name: Build & Push Nginx
-        uses: docker/build-push-action@v4
-        with:
-          context: ./nginx
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-nginx:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-nginx:latest
+            # 3) 앱 디렉터리 준비
+            APP_DIR="/home/${{ secrets.SERVER_USER }}/app"
+            if [ ! -d "$APP_DIR" ]; then
+              git clone git@github.com:MJSEC-MJU/Reagan.git "$APP_DIR"
+            fi
+            cd "$APP_DIR"
+
+            # 4) 깃 동기화 (dev 브랜치)
+            git fetch --all
+            git checkout dev
+            git reset --hard origin/dev
+
+            # 5) SSL 파일이 CI에서 올린 nginx/ssl 에 있다고 가정
+            mkdir -p nginx/ssl
+            mv ~/nginx/ssl/* nginx/ssl/
+
+            # 6) .env 파일 복사 (필요하면 CI에서 .env 를 scp로 전달)
+            # cp /tmp/.env .
+
+            # 7) 컨테이너 빌드 & 재시작
+            sudo docker-compose up --build -d --remove-orphans
+
+            # 8) 불필요 이미지 정리 (옵션)
+            sudo docker image prune -f
