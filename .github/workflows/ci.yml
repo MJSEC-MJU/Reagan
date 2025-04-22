@@ -1,19 +1,17 @@
+# .github/workflows/docker-compose-ci.yml
 name: Docker Compose CI
 
 on:
   push:
-    branches:
-      - dev
+    branches: [ dev ]
   pull_request:
-    branches:
-      - dev
+    branches: [ dev ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
-    # Compose 파일이 참조하는 환경변수
     env:
       DB_NAME:             ${{ secrets.DB_NAME }}
       DB_USERNAME:         ${{ secrets.DB_USERNAME }}
@@ -22,25 +20,29 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
     steps:
-      - name: Check out repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create Docker Compose .env
+      - name: Debug workspace contents
+        run: |
+          echo "PWD: $PWD"
+          ls -R .
+
+      - name: Create .env file
         run: |
           cat <<EOF > .env
-          DB_NAME=${DB_NAME}
-          DB_USERNAME=${DB_USERNAME}
-          DB_PASSWORD=${DB_PASSWORD}
-          DB_PORT=${DB_PORT}
-          DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USERNAME=${{ env.DB_USERNAME }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          DB_PORT=${{ env.DB_PORT }}
+          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
           EOF
 
-      - name: Create SSL cert files for nginx
+      - name: Create SSL files
         run: |
           mkdir -p nginx/ssl
           echo "${{ secrets.SSL_CERT }}" > nginx/ssl/fullchain.pem
           echo "${{ secrets.SSL_KEY  }}" > nginx/ssl/privkey.pem
-          ls -l nginx/ssl
 
       - name: Install Docker Compose
         run: |
@@ -48,10 +50,9 @@ jobs:
           sudo apt-get install -y docker-compose
 
       - name: Build & start all services
-        run: |
-          docker-compose up --build -d
+        run: docker-compose up --build -d
 
-      - name: Wait for MySQL to be healthy
+      - name: Wait for MySQL healthy
         run: |
           for i in {1..30}; do
             docker-compose exec -T db mysqladmin ping -h localhost --silent && break
@@ -62,18 +63,17 @@ jobs:
       - name: Run Django tests
         run: docker-compose run --rm test
 
-      - name: Collect backend logs (on success)
+      - name: Collect backend logs
         if: success()
         run: docker-compose logs backend
 
-      - name: Teardown all containers
+      - name: Teardown containers
         if: always()
         run: docker-compose down
 
-      - name: Upload test report (on failure)
+      - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          # BACK/reagan 폴더 내 테스트 리포트 경로로 조정하세요
           path: BACK/reagan/build/reports/tests/test
