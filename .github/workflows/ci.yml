@@ -1,5 +1,5 @@
 # .github/workflows/docker-compose-ci.yml
-name: Docker Compose CI
+name: Docker Compose CI & Push
 
 on:
   push:
@@ -7,35 +7,31 @@ on:
   pull_request:
     branches: [ dev ]
 
+env:
+  DB_NAME:             ${{ secrets.DB_NAME }}
+  DB_USERNAME:         ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
+  DB_PORT:             3306
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
-    env:
-      DB_NAME:             ${{ secrets.DB_NAME }}
-      DB_USERNAME:         ${{ secrets.DB_USERNAME }}
-      DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
-      DB_PORT:             3306
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug workspace contents
+      - name: Create .env
         run: |
-          echo "PWD: $PWD"
-          ls -R .
-
-      - name: Create .env file
-        run: |
-          cat <<EOF > .env
-          DB_NAME=${{ env.DB_NAME }}
-          DB_USERNAME=${{ env.DB_USERNAME }}
-          DB_PASSWORD=${{ env.DB_PASSWORD }}
-          DB_PORT=${{ env.DB_PORT }}
-          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          cat > .env <<EOF
+          DB_NAME=${DB_NAME}
+          DB_USERNAME=${DB_USERNAME}
+          DB_PASSWORD=${DB_PASSWORD}
+          DB_PORT=${DB_PORT}
+          DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
           EOF
 
       - name: Create SSL files
@@ -49,25 +45,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      - name: Build & start all services
+      - name: Start all services
         run: docker-compose up --build -d
 
-      - name: Wait for MySQL healthy
+      - name: Wait for MySQL
         run: |
           for i in {1..30}; do
             docker-compose exec -T db mysqladmin ping -h localhost --silent && break
-            echo "Waiting for MySQL..."
             sleep 2
           done
 
       - name: Run Django tests
         run: docker-compose run --rm test
 
-      - name: Collect backend logs
-        if: success()
-        run: docker-compose logs backend
-
-      - name: Teardown containers
+      - name: Teardown
         if: always()
         run: docker-compose down
 
@@ -77,3 +68,52 @@ jobs:
         with:
           name: test-report
           path: BACK/reagan/build/reports/tests/test
+
+  push-images:
+    name: Build & Push Docker Images
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      IMAGE_TAG: dev-${{ github.sha }}   # SHA 기반 태그
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./BACK/reagan
+          file: dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-backend:${{ env.IMAGE_TAG }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-backend:latest
+
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-frontend:${{ env.IMAGE_TAG }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-frontend:latest
+
+      - name: Build & Push Nginx
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: nginx/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-nginx:${{ env.IMAGE_TAG }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/reagan-nginx:latest

@@ -1,78 +1,33 @@
 version: '3.8'
 
 services:
-  redis:
-    image: redis:7.0
-    container_name: reagan-redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - reagan-network
-
-  db:
-    image: mysql:8.0
-    container_name: reagan-mysql
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE:      ${DB_NAME}
-      MYSQL_USER:          ${DB_USERNAME}
-      MYSQL_PASSWORD:      ${DB_PASSWORD}
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - reagan-network
-
   backend:
-    build:
-      context: ./BACK/reagan
-      dockerfile: dockerfile
+    image: ${DOCKER_HUB_USERNAME}/reagan-backend:latest
     container_name: reagan-backend
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "8080:8000"
+    restart: always
+    env_file:
+      - .env
     environment:
-      DB_HOST:     db
-      DB_PORT:     ${DB_PORT}
-      DB_NAME:     ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - ./BACK/reagan:/app
+      - DB_HOST=db
+    depends_on:
+      - db
+      - redis
     networks:
-      - reagan-network
+      - app-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: dockerfile
+    image: ${DOCKER_HUB_USERNAME}/reagan-frontend:latest
     container_name: reagan-frontend
+    restart: always
     depends_on:
       - backend
-    ports:
-      - "3000:80"
     networks:
-      - reagan-network
+      - app-network
 
   nginx:
-    build:
-      context: .                    # 리포지터리 루트 전체를 컨텍스트로
-      dockerfile: nginx/Dockerfile  # 위에서 작성한 Dockerfile 사용
-    image: reagan-nginx:latest
+    image: ${DOCKER_HUB_USERNAME}/reagan-nginx:latest
     container_name: reagan-nginx
+    restart: always
     depends_on:
       - backend
       - frontend
@@ -80,33 +35,36 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # CI에서 만든 fullchain.pem/privkey.pem 이
-      # ./nginx/ssl 이하에 들어있다고 가정
       - ./nginx/ssl:/etc/letsencrypt/live/msg.mjsec.kr:ro
     networks:
-      - reagan-network
+      - app-network
 
-  test:
-    build:
-      context: ./BACK/reagan
-      dockerfile: dockerfile
-    container_name: reagan-test
-    command: python manage.py test
-    depends_on:
-      - db
-      - redis
+  db:
+    image: mysql:8.0
+    container_name: reagan-mysql
+    restart: always
+    env_file:
+      - .env
     environment:
-      DB_HOST:     db
-      DB_PORT:     ${DB_PORT}
-      DB_NAME:     ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE:      ${DB_NAME}
+      MYSQL_USER:          ${DB_USERNAME}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
     networks:
-      - reagan-network
+      - app-network
+
+  redis:
+    image: redis:7.0
+    container_name: reagan-redis
+    restart: always
+    networks:
+      - app-network
 
 volumes:
   db_data:
 
 networks:
-  reagan-network:
+  app-network:
     driver: bridge
