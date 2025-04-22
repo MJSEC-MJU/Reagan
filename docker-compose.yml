@@ -21,9 +21,9 @@ services:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE:      ${DB_NAME}
+      MYSQL_USER:          ${DB_USERNAME}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -45,9 +45,9 @@ services:
     ports:
       - "8080:8000"
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
+      DB_HOST:     db
+      DB_PORT:     ${DB_PORT}
+      DB_NAME:     ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
     volumes:
@@ -69,8 +69,8 @@ services:
 
   nginx:
     build:
-      context: ./nginx
-      dockerfile: Dockerfile
+      context: .                    # 리포지터리 루트 전체를 컨텍스트로
+      dockerfile: nginx/Dockerfile  # 위에서 작성한 Dockerfile 사용
     image: reagan-nginx:latest
     container_name: reagan-nginx
     depends_on:
@@ -80,8 +80,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      # CI에서 만든 fullchain.pem/privkey.pem 이
+      # ./nginx/ssl 이하에 들어있다고 가정
+      - ./nginx/ssl:/etc/letsencrypt/live/msg.mjsec.kr:ro
     networks:
       - reagan-network
 
@@ -95,9 +96,9 @@ services:
       - db
       - redis
     environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
+      DB_HOST:     db
+      DB_PORT:     ${DB_PORT}
+      DB_NAME:     ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
     networks:

@@ -1,7 +1,11 @@
+# nginx/Dockerfile
 FROM nginx:latest
 
+# main 설정 덮어쓰기
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
-#COPY certs /etc/letsencrypt/
+# 사이트별 server 블록 덮어쓰기
+COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 
+# foreground 모드
 CMD ["nginx", "-g", "daemon off;"]
