@@ -56,7 +56,7 @@ jobs:
           done
 
       - name: Run Django tests
-        run: docker-compose run --rm test
+        run: docker-compose run --rm backend python manage.py test
 
       - name: Teardown
         if: always()
@@ -99,15 +99,25 @@ jobs:
             git checkout dev
             git reset --hard origin/dev
 
-            # 5) SSL 파일이 CI에서 올린 nginx/ssl 에 있다고 가정
+            # 5) VM에서 .env와 SSL 파일 생성
+            cat <<EOF > .env
+            DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            EOF
+
             mkdir -p nginx/ssl
-            mv ~/nginx/ssl/* nginx/ssl/
+            cat <<EOF > nginx/ssl/fullchain.pem
+            ${{ secrets.SSL_CERT }}
+            EOF
+            cat <<EOF > nginx/ssl/privkey.pem
+            ${{ secrets.SSL_KEY }}
+            EOF
 
-            # 6) .env 파일 복사 (필요하면 CI에서 .env 를 scp로 전달)
-            # cp /tmp/.env .
-
-            # 7) 컨테이너 빌드 & 재시작
+            # 6) 컨테이너 빌드 & 재시작
             sudo docker-compose up --build -d --remove-orphans
 
-            # 8) 불필요 이미지 정리 (옵션)
+            # 7) 불필요 이미지 정리 (옵션)
             sudo docker image prune -f
