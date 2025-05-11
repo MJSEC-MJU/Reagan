@@ -71,6 +71,21 @@ services:
     networks:
       - app-network
 
+  test:
+    build:
+      context: ./BACK/reagan
+      dockerfile: dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+    entrypoint: ["sh", "-c", "python manage.py test --verbosity=2"]
+
 volumes:
   db_data:
 
