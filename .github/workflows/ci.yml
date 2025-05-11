@@ -1,5 +1,5 @@
 # .github/workflows/docker-compose-ci.yml
-name: Docker Compose CI
+name: Docker Compose CI & Deploy
 
 on:
   push:
@@ -7,35 +7,31 @@ on:
   pull_request:
     branches: [ dev ]
 
+env:
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DB_NAME:             ${{ secrets.DB_NAME }}
+  DB_USERNAME:         ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
+  DB_PORT:             3306
+
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
-    env:
-      DB_NAME:             ${{ secrets.DB_NAME }}
-      DB_USERNAME:         ${{ secrets.DB_USERNAME }}
-      DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
-      DB_PORT:             3306
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug workspace contents
+      - name: Create .env
         run: |
-          echo "PWD: $PWD"
-          ls -R .
-
-      - name: Create .env file
-        run: |
-          cat <<EOF > .env
-          DB_NAME=${{ env.DB_NAME }}
-          DB_USERNAME=${{ env.DB_USERNAME }}
-          DB_PASSWORD=${{ env.DB_PASSWORD }}
-          DB_PORT=${{ env.DB_PORT }}
-          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          cat > .env <<EOF
+          DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
+          DB_NAME=${DB_NAME}
+          DB_USERNAME=${DB_USERNAME}
+          DB_PASSWORD=${DB_PASSWORD}
+          DB_PORT=${DB_PORT}
           EOF
 
       - name: Create SSL files
@@ -49,31 +45,79 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      - name: Build & start all services
+      - name: Start all services
         run: docker-compose up --build -d
 
-      - name: Wait for MySQL healthy
+      - name: Wait for MySQL
         run: |
           for i in {1..30}; do
             docker-compose exec -T db mysqladmin ping -h localhost --silent && break
-            echo "Waiting for MySQL..."
             sleep 2
           done
 
       - name: Run Django tests
-        run: docker-compose run --rm test
+        run: docker-compose run --rm backend python manage.py test
 
-      - name: Collect backend logs
-        if: success()
-        run: docker-compose logs backend
-
-      - name: Teardown containers
+      - name: Teardown
         if: always()
         run: docker-compose down
 
-      - name: Upload test report
-        if: failure()
-        uses: actions/upload-artifact@v4
+  deploy:
+    name: Deploy to VM
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          name: test-report
-          path: BACK/reagan/build/reports/tests/test
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets.SERVER_SSH_KEY }}
+          port:     ${{ secrets.SERVER_SSH_PORT }}
+          script: |
+            set -e
+
+            # 1) 서버 ~/.ssh/known_hosts에 GitHub 키 추가
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+            # 2) 필요한 패키지(한 번만)
+            sudo apt-get update
+            sudo apt-get install -y docker.io docker-compose git
+
+            # 3) 앱 디렉터리 준비
+            APP_DIR="/home/${{ secrets.SERVER_USER }}/app"
+            if [ ! -d "$APP_DIR" ]; then
+              git clone git@github.com:MJSEC-MJU/Reagan.git "$APP_DIR"
+            fi
+            cd "$APP_DIR"
+
+            # 4) 깃 동기화 (dev 브랜치)
+            git fetch --all
+            git checkout dev
+            git reset --hard origin/dev
+
+            # 5) VM에서 .env와 SSL 파일 생성
+            cat <<EOF > .env
+            DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            EOF
+
+            mkdir -p nginx/ssl
+            cat <<EOF > nginx/ssl/fullchain.pem
+            ${{ secrets.SSL_CERT }}
+            EOF
+            cat <<EOF > nginx/ssl/privkey.pem
+            ${{ secrets.SSL_KEY }}
+            EOF
+
+            # 6) 컨테이너 빌드 & 재시작
+            sudo docker-compose up --build -d --remove-orphans
+
+            # 7) 불필요 이미지 정리 (옵션)
+            sudo docker image prune -f
