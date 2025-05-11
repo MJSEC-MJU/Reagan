@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reagan-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reagan-backend
+  template:
+    metadata:
+      labels:
+        app: reagan-backend
+    spec:
+      containers:
+      - name: reagan-backend
+        image: ialleejy/35_leejongyun:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DB_HOST
+          value: "db"             # 클러스터 내 DB 서비스 호스트명
+        envFrom:
+        - configMapRef:
+            name: app-db-config   # db.env 로 만든 ConfigMap
