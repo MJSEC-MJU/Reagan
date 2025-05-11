@@ -8,6 +8,7 @@ on:
     branches: [ dev ]
 
 env:
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DB_NAME:             ${{ secrets.DB_NAME }}
   DB_USERNAME:         ${{ secrets.DB_USERNAME }}
   DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
@@ -26,6 +27,7 @@ jobs:
       - name: Create .env
         run: |
           cat > .env <<EOF
+          DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
           DB_NAME=${DB_NAME}
           DB_USERNAME=${DB_USERNAME}
           DB_PASSWORD=${DB_PASSWORD}
