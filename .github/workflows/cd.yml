@@ -17,9 +17,20 @@ jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Create .env for Docker Compose
+        run: |
+          cat > .env <<EOF
+          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USERNAME=${{ env.DB_USERNAME }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          DB_PORT=${{ env.DB_PORT }}
+          EOF
 
       - name: Install Docker Compose
         run: |
@@ -46,6 +57,7 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Deploy to VM via SSH
         uses: appleboy/ssh-action@v0.1.7
