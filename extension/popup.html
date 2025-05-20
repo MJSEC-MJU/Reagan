@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Phishing Check</title>
+    <style>
+        body {
+            width: 200px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+        .safe {
+            color: green;
+        }
+        .danger {
+            color: red;
+        }
+        .label {
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div id="icon" class="icon">WAIT</div>
+<div id="label" class="label">분석 중...</div>
+<script src="popup.js"></script>
+</body>
+</html>

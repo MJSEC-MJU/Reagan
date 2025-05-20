@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./BACK/reagan
+      context: ./BACK
       dockerfile: dockerfile
     image: ${DOCKER_HUB_USERNAME}/reagan-backend:latest
     container_name: reagan-backend
@@ -73,7 +73,7 @@ services:
 
   test:
     build:
-      context: ./BACK/reagan
+      context: ./BACK
       dockerfile: dockerfile
     env_file:
       - .env

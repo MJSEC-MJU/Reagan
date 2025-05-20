@@ -98,6 +98,13 @@ jobs:
             git fetch --all
             git checkout dev
             git reset --hard origin/dev
+            
+            echo "PWD: $(pwd)"
+            ls -al
+            echo "ls BACK:"
+            ls -al BACK || echo "→ BACK 디렉터리 없음!"
+            echo "ls BACK/reagan:"
+            ls -al BACK/reagan || echo "→ BACK/reagan 없음!"
 
             # 5) VM에서 .env와 SSL 파일 생성
             cat <<EOF > .env
