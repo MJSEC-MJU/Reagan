@@ -73,7 +73,7 @@ services:
 
   test:
     build:
-      context: ./BACK/reagan
+      context: ./BACK
       dockerfile: dockerfile
     env_file:
       - .env
