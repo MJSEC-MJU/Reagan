@@ -1,11 +1,60 @@
-name: CD to VM via SSH
+name: Build, Push & CD to VM via SSH
 
 on:
   push:
     branches: [ main ]
 
+env:
+  # VM 배포에서 쓸 .env 변수
+  DB_NAME:             ${{ secrets.DB_NAME }}
+  DB_USERNAME:         ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD:         ${{ secrets.DB_PASSWORD }}
+  DB_PORT:             ${{ secrets.DB_PORT }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
 jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Create .env for Docker Compose
+        run: |
+          cat > .env <<EOF
+          DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+          DB_NAME=${{ env.DB_NAME }}
+          DB_USERNAME=${{ env.DB_USERNAME }}
+          DB_PASSWORD=${{ env.DB_PASSWORD }}
+          DB_PORT=${{ env.DB_PORT }}
+          EOF
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build all services
+        run: docker-compose build
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Push images to Docker Hub
+        run: |
+          docker-compose push backend
+          docker-compose push frontend
+          docker-compose push nginx
+
   deploy:
+    name: Deploy to VM via SSH
+    needs: build-and-push
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -24,7 +73,7 @@ jobs:
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
-            # 2) Docker & Docker‐Compose 설치 (한 번만 필요)
+            # 2) Docker & Docker‐Compose 설치 (한 번만)
             sudo apt-get update
             sudo apt-get install -y docker.io docker-compose
 
@@ -35,7 +84,7 @@ jobs:
 
             # 4) 리포지터리 클론 또는 업데이트
             if [ ! -f docker-compose.yml ]; then
-              git clone git@github.com:MJSEC-MJU/Reagan.git . 
+              git clone git@github.com:MJSEC-MJU/Reagan.git .
             fi
             git fetch --all
             git checkout main
@@ -43,17 +92,17 @@ jobs:
 
             # 5) .env 파일 생성
             cat > .env <<EOF
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
-            DOCKER_HUB_ACCESS_TOKEN=${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+            DB_NAME=${{ env.DB_NAME }}
+            DB_USERNAME=${{ env.DB_USERNAME }}
+            DB_PASSWORD=${{ env.DB_PASSWORD }}
+            DB_PORT=${{ env.DB_PORT }}
+            DOCKER_HUB_USERNAME=${{ env.DOCKER_HUB_USERNAME }}
+            DOCKER_HUB_ACCESS_TOKEN=${{ env.DOCKER_HUB_ACCESS_TOKEN }}
             EOF
 
-            # 6) Docker Hub 로그인
-            echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" \
-              | sudo docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+            # 6) Docker Hub 로그인 (원격 VM에서 pull 할 때 필요)
+            echo "${{ env.DOCKER_HUB_ACCESS_TOKEN }}" \
+              | sudo docker login -u "${{ env.DOCKER_HUB_USERNAME }}" --password-stdin
 
             # 7) 최신 이미지 Pull
             sudo docker-compose pull backend frontend nginx
