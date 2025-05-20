@@ -25,4 +25,4 @@ COPY . /app/
 EXPOSE 8000
 
 # Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
-CMD ["gunicorn", "reagan.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "site_checker.wsgi:application", "--bind", "0.0.0.0:8000"]
