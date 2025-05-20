@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 # suspicious 키워드 정의
 SUSPICIOUS_KEYWORDS = ['login', 'secure', 'update', 'verify', 'account', 'bank', 'confirm']
 
-# URL 특징 추출 함수
+# 특징 추출
 def extract_features(url):
     parsed = urlparse(url)
     domain = parsed.netloc
