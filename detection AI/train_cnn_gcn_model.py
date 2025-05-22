@@ -11,8 +11,12 @@ from torch_geometric.nn import GCNConv
 from bs4 import BeautifulSoup
 
 # 경로 설정 (필터링된 샘플)
-LABEL_PATH = "filtered_dataset/filtered_labels.csv"
-DATA_DIR = "filtered_dataset"
+# LABEL_PATH = "filtered_dataset/filtered_labels.csv"
+# DATA_DIR = "filtered_dataset"
+
+# 경로 설정 (추출한 샘플 필터X)
+LABEL_PATH = "website_dataset/labels.csv"
+DATA_DIR = "website_dataset"
 
 TAG_VOCAB = {"<UNK>": 0}
 
