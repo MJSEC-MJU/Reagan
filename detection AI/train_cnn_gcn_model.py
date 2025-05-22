@@ -10,13 +10,15 @@ from torch_geometric.data import Data as GraphData
 from torch_geometric.nn import GCNConv
 from bs4 import BeautifulSoup
 
-# 경로 설정 (필터링된 샘플)
+# 경로 설정
 # LABEL_PATH = "filtered_dataset/filtered_labels.csv"
 # DATA_DIR = "filtered_dataset"
+# MODEL_PATH = "cnn_gcn_model.pt"
 
-# 경로 설정 (추출한 샘플 필터X)
+# 경로 설정
 LABEL_PATH = "website_dataset/labels.csv"
 DATA_DIR = "website_dataset"
+MODEL_PATH = "second_detect.pt"
 
 TAG_VOCAB = {"<UNK>": 0}
 
@@ -25,13 +27,13 @@ def tag_to_index(tag):
         TAG_VOCAB[tag] = len(TAG_VOCAB)
     return TAG_VOCAB[tag]
 
-# ✅ HTML을 단순 시퀀스로 처리하기 위한 토큰화
+# HTML 토큰화
 def tokenize_html(html):
     soup = BeautifulSoup(html, "html.parser")
     tokens = [tag.name for tag in soup.find_all() if tag.name]
-    return tokens[:200]  # 최대 200개까지만 사용
+    return tokens[:200]
 
-# ✅ 간단한 그래프 변환 (부모-자식 간선만 사용)
+# DOM 구조를 그래프로 변환
 def dom_to_graph(html):
     soup = BeautifulSoup(html, "html.parser")
     nodes = []
@@ -53,11 +55,11 @@ def dom_to_graph(html):
         return None
 
     indices = [tag_to_index(n) for n in nodes]
-    x = torch.tensor(indices).unsqueeze(1).float()  # (N, 1)
+    x = torch.tensor(indices).unsqueeze(1).float()
     edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous() if edges else torch.empty((2, 0), dtype=torch.long)
     return GraphData(x=x, edge_index=edge_index)
 
-# ✅ 커스텀 Dataset
+# 커스텀 데이터셋
 class WebDataset(Dataset):
     def __init__(self, df):
         self.samples = []
@@ -78,7 +80,7 @@ class WebDataset(Dataset):
         tokens, graph, label = self.samples[idx]
         return tokens, graph, label
 
-# ✅ 임베딩 및 간단한 CNN+GCN 결합 모델
+# 모델 정의
 class SimpleWebClassifier(nn.Module):
     def __init__(self, vocab_size, embed_dim):
         super().__init__()
@@ -89,14 +91,14 @@ class SimpleWebClassifier(nn.Module):
         self.fc = nn.Linear(64 * 2, 2)
 
     def forward(self, token_ids, graph):
-        x_embed = self.embedding(token_ids).permute(0, 2, 1)  # (B, E, T)
-        x_cnn = self.pool(self.cnn(x_embed)).squeeze(-1)      # (B, 64)
-        x_gcn = self.gcn1(graph.x, graph.edge_index)          # (N, 64)
-        x_gcn = x_gcn.mean(dim=0)                             # (64,)
+        x_embed = self.embedding(token_ids).permute(0, 2, 1)
+        x_cnn = self.pool(self.cnn(x_embed)).squeeze(-1)
+        x_gcn = self.gcn1(graph.x, graph.edge_index)
+        x_gcn = x_gcn.mean(dim=0)
         x = torch.cat([x_cnn, x_gcn.unsqueeze(0).expand(x_cnn.size(0), -1)], dim=1)
         return self.fc(x)
 
-# ✅ 토큰 → 숫자 매핑
+# 토큰 → 인덱스 변환
 def build_vocab(samples):
     vocab = {"<PAD>": 0, "<UNK>": 1}
     for tokens, _, _ in samples:
@@ -110,8 +112,12 @@ def encode_tokens(tokens, vocab, max_len=200):
     ids += [vocab["<PAD>"]] * (max_len - len(ids))
     return torch.tensor(ids[:max_len])
 
-# ✅ 학습
+model = None
+vocab = None
+
+# 학습
 def train_model():
+    global model, vocab
     df = pd.read_csv(LABEL_PATH)
     train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
     train_data = WebDataset(train_df)
@@ -130,7 +136,7 @@ def train_model():
     for epoch in range(5):
         total_loss = 0
         for i in range(len(train_tokens)):
-            token_ids = train_tokens[i].unsqueeze(0)  # (1, T)
+            token_ids = train_tokens[i].unsqueeze(0)
             graph = train_graphs[i]
             label = torch.tensor([train_labels[i]])
 
@@ -144,7 +150,11 @@ def train_model():
             total_loss += loss.item()
         print(f"Epoch {epoch+1}, Loss: {total_loss:.4f}")
 
-    # ✅ 평가
+    # 모델 저장
+    torch.save(model.state_dict(), MODEL_PATH)
+    print(f"\nModel saved to {MODEL_PATH}")
+
+    # 결과 표시
     model.eval()
     y_true, y_pred = [], []
     for tokens, graph, label in test_data:
@@ -154,8 +164,30 @@ def train_model():
         y_true.append(label)
         y_pred.append(pred)
 
-    print("\n✅ Classification Report:\n")
+    print("\nClassification Report:\n")
     print(classification_report(y_true, y_pred))
+
+# 예측기 함수
+@torch.no_grad()
+def predict_from_html(html):
+    global model, vocab
+    if model is None or vocab is None:
+        model = SimpleWebClassifier(vocab_size=1000, embed_dim=64)
+        model.load_state_dict(torch.load(MODEL_PATH))
+        model.eval()
+
+    tokens = tokenize_html(html)
+    graph = dom_to_graph(html)
+    if not graph:
+        return {"error": "Invalid DOM structure"}
+    token_ids = encode_tokens(tokens, vocab).unsqueeze(0)
+    output = model(token_ids, graph)
+    pred = output.argmax(dim=1).item()
+    confidence = torch.softmax(output, dim=1)[0][pred].item()
+    return {
+        "phishing": bool(pred),
+        "confidence": round(confidence, 3)
+    }
 
 if __name__ == "__main__":
     train_model()
