@@ -42,7 +42,7 @@
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
             const siteUrl = tabs[0].url;
             // 백엔드 주소는 수정하기 (어딨는지를 모르겠음)
-            fetch("백엔드 주소 수정하기/api/analysis-requests", {
+            fetch("https://reagan.mjsec.kr/api/analysis-requests", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ site_url: siteUrl })
@@ -52,7 +52,7 @@
                     const requestId = data.request_id;
 
                     const interval = setInterval(() => {
-                        fetch(`http://127.0.0.1:5000/api/analysis-requests/${requestId}`)
+                        fetch(`https://reagan.mjsec.kr/api/analysis-requests/${requestId}`)
                             .then(res => res.json())
                             .then(details => {
                                 if (details.overall_status === "completed") {

@@ -7,8 +7,8 @@
     console.log("[REAGAN] 전송 데이터 확인:", data);
 
     // 백엔드 서버로 전송 JSON 형식
-    // 테스트를 위해 임시로 서버 주소 넣었음 나중에 바꿀것
-    fetch("백엔드 서버 주소 넣기/api/analysis-requests", {
+    // reagan.mjsec.kr 로 서버 주소 변경
+    fetch("https://reagan.mjsec.kr/api/analysis-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
