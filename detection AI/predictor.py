@@ -2,7 +2,7 @@ import joblib
 import re
 from urllib.parse import urlparse
 
-# 학습된 모델 로드 (같은 폴더에 lightgbm_model.pkl 있어야 함, 백에서 redictor.py 가져갈때 pkl 파일도 무조건 가져갈 것)
+# 학습된 모델 로드 (같은 폴더에 lightgbm_model.pkl 있어야 함, 백에서 predictor.py 가져갈때 pkl 파일도 무조건 가져갈 것)
 model = joblib.load("lightgbm_model.pkl")
 
 # 해당 키워드 수상하게 많이 들어가면 피싱 가능성 높음 (이후에 더 추가 가능)
