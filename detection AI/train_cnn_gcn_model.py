@@ -152,7 +152,7 @@ def train_model():
 
     # 모델 저장
     torch.save(model.state_dict(), MODEL_PATH)
-    print(f"\nModel saved to {MODEL_PATH}")
+    print(f"\n모델이 저장되었습니다. {MODEL_PATH}")
 
     # 결과 표시
     model.eval()
