@@ -34,6 +34,59 @@
 <body>
 <div id="icon" class="icon">WAIT</div>
 <div id="label" class="label">분석 중...</div>
-<script src="popup.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const icon = document.getElementById("icon");
+        const label = document.getElementById("label");
+
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            const siteUrl = tabs[0].url;
+            // 백엔드 주소는 수정하기 (어딨는지를 모르겠음)
+            fetch("백엔드 주소 수정하기/api/analysis-requests", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ site_url: siteUrl })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const requestId = data.request_id;
+
+                    const interval = setInterval(() => {
+                        fetch(`http://127.0.0.1:5000/api/analysis-requests/${requestId}`)
+                            .then(res => res.json())
+                            .then(details => {
+                                if (details.overall_status === "completed") {
+                                    clearInterval(interval);
+
+                                    const task = details.tasks.find(t => t.task_type === "site_analysis");
+                                    const isPhishing = task?.result?.vulnerabilities?.length > 0;
+
+                                    if (isPhishing) {
+                                        icon.textContent = "DETECT";
+                                        icon.className = "icon danger";
+                                        label.textContent = "위험합니다.";
+                                    } else {
+                                        icon.textContent = "SAFE";
+                                        icon.className = "icon safe";
+                                        label.textContent = "안전합니다.";
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.error("분석 실패", err);
+                                clearInterval(interval);
+                                icon.textContent = "FAIL";
+                                label.textContent = "판별 실패";
+                            });
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error("분석 요청 실패", err);
+                    icon.textContent = "FAIL";
+                    label.textContent = "판별 실패";
+                });
+        });
+    });
+</script>
 </body>
 </html>
