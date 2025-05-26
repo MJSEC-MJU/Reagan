@@ -1,10 +1,19 @@
 {
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html", "blocked.css", "blocked.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "manifest_version": 3,
   "name": "Reagan Phishing Detector",
   "version": "1.0",
   "description": "Detect phishing pages using AI via static code analysis.",
-  "permissions": ["scripting", "activeTab"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["scripting", "activeTab", "storage", "webRequest", "webRequestBlocking", "tabs"],
+  "host_permissions": ["http://localhost:5000/*", "<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
