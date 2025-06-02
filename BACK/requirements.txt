@@ -13,7 +13,7 @@ bs4
 fake-useragent
 joblib==1.5.0
 lightgbm==4.6.0
-numpy==2.2.6
+numpy==2.0.2
 scikit-learn==1.6.1
 scipy==1.15.3
 threadpoolctl==3.6.0
