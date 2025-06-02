@@ -15,11 +15,7 @@ ALLOWED_HOSTS = os.getenv(
     "DJANGO_ALLOWED_HOSTS",
     "localhost,127.0.0.1,reagan.mjsec.kr",
 ).split(",")
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^chrome-extension://[a-z]{32}$",   # 32글자 영문 소문자 ID 모두 허용
-    r"^https://reagan\.mjsec\.kr$",
-]
-CORS_ALLOW_CREDENTIALS = False   
+
 # ─────────────────────────────────────────────────────────────
 # 애플리케이션
 # ─────────────────────────────────────────────────────────────
@@ -131,14 +127,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ─────────────────────────────────────────────────────────────
 # CORS / CSRF
 # ─────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",      # 개발 React
-    "https://reagan.mjsec.kr",    # 운영 React
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^chrome-extension://[a-z]{32}$",       # 모든 MV3 확장 (운영용일 땐 ID 하나로 좁혀도 됨)
+    r"^https://reagan\.mjsec\.kr$",
+    r"^http://localhost:3000$",
 ]
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_HEADERS     = ["content-type"]
+CORS_ALLOW_METHODS     = ["GET", "POST", "OPTIONS"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://reagan.mjsec.kr",
+    "https://reagan.mjsec.kr"
 ]
 
 # ─────────────────────────────────────────────────────────────
