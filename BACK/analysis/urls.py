@@ -6,6 +6,6 @@ router = DefaultRouter()
 router.register(r'analysis-requests', AnalysisRequestViewSet, basename='analysisrequest')
 router.register(r'analysis-tasks', AnalysisTaskViewSet, basename='analysistask')
 
-urlpatterns = [
-    path('', include(router.urls))
-    ]
+# 라우터의 경로만 반환하여 깔끔하게 설정
+urlpatterns = router.urls
+
