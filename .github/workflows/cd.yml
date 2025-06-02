@@ -109,6 +109,12 @@ jobs:
 
             # 8) 컨테이너 재기동
             sudo docker-compose up -d --remove-orphans
+            
+            # 8.5) <== 여기 추가 ------------------------
+            #   백엔드 컨테이너 안에서 마이그레이션 적용
+            sudo docker-compose exec backend \
+            python manage.py migrate --noinput
+            # -----------------------------------------
 
             # 9) 불필요 이미지 정리 (옵션)
             sudo docker image prune -f
