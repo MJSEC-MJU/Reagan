@@ -2,11 +2,11 @@
 
 from django.utils import timezone
 from .models import AnalysisTask
+from analysis.AI.packet_AI.predict_url import is_malicious
 from urllib.parse import urlparse
 
 import time
 import random
-
 import requests
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -268,18 +268,72 @@ def run_captcha(task: AnalysisTask):
 
 def run_packet(task: AnalysisTask):
     """
-    네트워크 패킷 분석 작업 (stub):
-    - 이 자리에서 실제 패킷 캡처/분석 로직을 구현하세요.
-    - 완료 후 결과 저장.
+    네트워크 패킷 분석 작업:
+      1) 우선 task.request에서 packet_url이 있으면 그걸 사용,
+         없으면 site_url을 사용해 URL을 구함.
+      2) is_malicious(url) 호출로 악성 여부 판단(현재는 stub 형태).
+      3) _update 로 상태를 저장. (완전 구현 전까지는 todo 필드만 남김)
+
+    ※ 실제 패킷 캡처/분석 로직을 넣으려면 이 자리에서 구현하세요.
     """
-    _update(task, 'running', start=True)
+    _update(task, "running", start=True)
 
     try:
-        # TODO: 실제 패킷 캡처/분석 로직 구현
-        packet_analysis_result = {
-            'todo': 'packet analysis completed (stub)'
+        # 1) 분석 대상 URL 결정
+        url = getattr(task.request, "packet_url", None) or task.request.site_url
+
+        # 2) 실제 악성 여부 판정 (현재는 외부 함수 호출 형태)
+        #    - is_malicious 함수가 실제 패킷 분석을 해 주는 로직이라 가정.
+        #    - 아직 구현 전이라면, stub 리턴을 넣어도 무방.
+        try:
+            verdict = is_malicious(url)["label"]  # True/False 리턴
+        except NameError:
+            # is_malicious 함수가 아직 준비되지 않았다면, 일단 stub으로 처리
+            verdict = False
+
+        # 3) 결과 저장 (완전 구현 전이니 todo 필드만 간단히 남겨 둠)
+        result_payload = {
+            "todo": "packet analysis pending",
+            "url": url,
+            "malicious": verdict,
         }
-        _update(task, 'completed', packet_analysis_result, end=True)
+        _update(task, "completed", result_payload, end=True)
 
     except Exception as e:
-        _update(task, 'failed', {'error': str(e)}, end=True)
+        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
+        _update(task, "failed", {"error": str(e)}, end=True)def run_packet(task: AnalysisTask):
+    """
+    네트워크 패킷 분석 작업:
+      1) 우선 task.request에서 packet_url이 있으면 그걸 사용,
+         없으면 site_url을 사용해 URL을 구함.
+      2) is_malicious(url) 호출로 악성 여부 판단(현재는 stub 형태).
+      3) _update 로 상태를 저장. (완전 구현 전까지는 todo 필드만 남김)
+
+    ※ 실제 패킷 캡처/분석 로직을 넣으려면 이 자리에서 구현하세요.
+    """
+    _update(task, "running", start=True)
+
+    try:
+        # 1) 분석 대상 URL 결정
+        url = getattr(task.request, "packet_url", None) or task.request.site_url
+
+        # 2) 실제 악성 여부 판정 (현재는 외부 함수 호출 형태)
+        #    - is_malicious 함수가 실제 패킷 분석을 해 주는 로직이라 가정.
+        #    - 아직 구현 전이라면, stub 리턴을 넣어도 무방.
+        try:
+            verdict = is_malicious(url)["label"]  # True/False 리턴
+        except NameError:
+            # is_malicious 함수가 아직 준비되지 않았다면, 일단 stub으로 처리
+            verdict = False
+
+        # 3) 결과 저장 (완전 구현 전이니 todo 필드만 간단히 남겨 둠)
+        result_payload = {
+            "todo": "packet analysis pending",
+            "url": url,
+            "malicious": verdict,
+        }
+        _update(task, "completed", result_payload, end=True)
+
+    except Exception as e:
+        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
+        _update(task, "failed", {"error": str(e)}, end=True)
