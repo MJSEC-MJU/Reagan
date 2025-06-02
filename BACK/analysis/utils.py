@@ -1,6 +1,8 @@
 from django.utils import timezone
 from .models import AnalysisTask
+from analysis.AI.packet_AI.predict_url import is_malicious
 from urllib.parse import urlparse
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -108,16 +110,23 @@ def run_site(task: AnalysisTask):
         _update(task, 'failed', {'error': str(e)}, end=True)
 
 
-def run_packet(task: AnalysisTask):
-    """
-    네트워크 패킷 분석 작업 (stub).
-    추후 구체 로직 추가 예정.
-    """
-    _update(task, 'running', start=True)
-    # TODO: 패킷 캡처 및 분석 구현
-    result = {'todo': 'packet analysis pending'}
-    _update(task, 'completed', result, end=True)
-
+def run_packet(task):       # 네트워크 패킷 분석석
+    _update(task, "running", start=True)
+    try:
+        url = getattr(task.request, "packet_url", None) or task.request.site_url
+        verdict = is_malicious(url)['label']          # True = 악성, False = 정상
+        _update(
+            task,
+            "completed",
+            {'todo': 'packet analysis pending', "url": url, "malicious": verdict},
+            end=True,
+        )
+    except Exception as e:
+        _update(task, "failed", {"error": str(e)}, end=True)
+    #_update(task, 'completed', {'todo': 'packet analysis pending'}, start=True, end=True)
+ 
+def run_captcha(task):      # 캡챠 우회
+    _update(task, 'completed', {'todo': 'captcha bypass pending'}, start=True, end=True)
 
 def run_captcha(task: AnalysisTask):
     """
@@ -128,4 +137,3 @@ def run_captcha(task: AnalysisTask):
     # TODO: CAPTCHA 우회 로직 구현
     result = {'todo': 'captcha bypass pending'}
     _update(task, 'completed', result, end=True)
-

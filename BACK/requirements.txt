@@ -10,3 +10,8 @@ undetected-chromedriver
 selenium-stealth
 selenium
 bs4
+django-cors-headers>=4.0.0
+joblib>=1.4.2
+pandas>=2.2.2
+tldextract>=3.6.0
+scikit-learn>=1.4.2
