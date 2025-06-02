@@ -10,3 +10,4 @@ undetected-chromedriver
 selenium-stealth
 selenium
 bs4
+django-cors-headers>=4.0.0
