@@ -1,14 +1,25 @@
 # your_app/views.py
 
 from rest_framework import viewsets
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.permissions import AllowAny
+
 from .models import AnalysisRequest, AnalysisTask
 from .serializers import AnalysisRequestSerializer, AnalysisTaskSerializer
 from .utils import run_site, run_captcha, run_packet, _update
 
 
 class AnalysisRequestViewSet(viewsets.ModelViewSet):
+    """
+    익명 사용자도 POST로 AnalysisRequest 생성이 가능하도록,
+    SessionAuthentication(CSRF 검사) 대신 BasicAuthentication만 사용하고,
+    permission은 AllowAny 로 설정합니다.
+    """
     queryset = AnalysisRequest.objects.all().order_by('-created_at')
     serializer_class = AnalysisRequestSerializer
+
+    authentication_classes = [BasicAuthentication]
+    permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
         # 1) 새로운 AnalysisRequest 인스턴스 생성
@@ -28,14 +39,12 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
         # 4) 만약 피싱 사이트로 판단되면, 캡차와 패킷 작업은 건너뛰고 skipped 처리
         if is_phishing:
-            # captcha 작업 생략
             _update(
                 captcha_task,
                 status='skipped',
                 result={'reason': 'Site was classified as phishing; skipping captcha bypass.'},
                 end=True
             )
-            # packet 작업 생략
             _update(
                 packet_task,
                 status='skipped',
@@ -43,28 +52,22 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                 end=True
             )
 
-            # AnalysisRequest 전체도 완료로 표시
             req.overall_status = 'completed'
             req.save()
             return
 
         # 5) 피싱이 아니면, 2차: 캡차 유무 검사(has_captcha==True/False)
         if has_captcha:
-            # 5-1) run_captcha → result에 bypass_success 여부가 찍힐 것
             run_captcha(captcha_task)
             captcha_task.refresh_from_db()
 
             bypass_success = captcha_task.result.get('bypass_success', False)
             if bypass_success:
-                # 5-2) 우회 성공했으면 packet 분석으로 넘어감
                 run_packet(packet_task)
-
-                # packet 작업까지 완료되면 AnalysisRequest 완료
                 req.overall_status = 'completed'
                 req.save()
                 return
             else:
-                # 우회 실패 시 packet 작업 skipped
                 _update(
                     packet_task,
                     status='skipped',
@@ -85,12 +88,14 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
             )
             run_packet(packet_task)
 
-            # packet 작업 완료 후 AnalysisRequest 완료
             req.overall_status = 'completed'
             req.save()
             return
 
 
 class AnalysisTaskViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    AnalysisTask는 조회 전용(API GET)만 허용
+    """
     queryset = AnalysisTask.objects.all()
     serializer_class = AnalysisTaskSerializer
