@@ -15,7 +15,11 @@ ALLOWED_HOSTS = os.getenv(
     "DJANGO_ALLOWED_HOSTS",
     "localhost,127.0.0.1,reagan.mjsec.kr",
 ).split(",")
-
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^chrome-extension://[a-z]{32}$",   # 32글자 영문 소문자 ID 모두 허용
+    r"^https://reagan\.mjsec\.kr$",
+]
+CORS_ALLOW_CREDENTIALS = False   
 # ─────────────────────────────────────────────────────────────
 # 애플리케이션
 # ─────────────────────────────────────────────────────────────
