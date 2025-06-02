@@ -10,3 +10,4 @@ undetected-chromedriver
 selenium-stealth
 selenium
 bs4
+fake-useragent
