@@ -1,11 +1,10 @@
 # your_app/views.py
 
 from rest_framework import viewsets
-from rest_framework.response import Response
 from .models import AnalysisRequest, AnalysisTask
 from .serializers import AnalysisRequestSerializer, AnalysisTaskSerializer
 from .utils import run_site, run_captcha, run_packet, _update
-from detection_ai.predictor import predict_url
+
 
 class AnalysisRequestViewSet(viewsets.ModelViewSet):
     queryset = AnalysisRequest.objects.all().order_by('-created_at')
@@ -43,6 +42,10 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                 result={'reason': 'Site was classified as phishing; skipping packet analysis.'},
                 end=True
             )
+
+            # AnalysisRequest 전체도 완료로 표시
+            req.overall_status = 'completed'
+            req.save()
             return
 
         # 5) 피싱이 아니면, 2차: 캡차 유무 검사(has_captcha==True/False)
@@ -55,6 +58,11 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
             if bypass_success:
                 # 5-2) 우회 성공했으면 packet 분석으로 넘어감
                 run_packet(packet_task)
+
+                # packet 작업까지 완료되면 AnalysisRequest 완료
+                req.overall_status = 'completed'
+                req.save()
+                return
             else:
                 # 우회 실패 시 packet 작업 skipped
                 _update(
@@ -63,6 +71,10 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                     result={'reason': 'Captcha bypass failed; skipping packet analysis.'},
                     end=True
                 )
+
+                req.overall_status = 'completed'
+                req.save()
+                return
         else:
             # 6) 캡차가 없으면 바로 패킷 분석 실행
             _update(
@@ -72,6 +84,11 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                 end=True
             )
             run_packet(packet_task)
+
+            # packet 작업 완료 후 AnalysisRequest 완료
+            req.overall_status = 'completed'
+            req.save()
+            return
 
 
 class AnalysisTaskViewSet(viewsets.ReadOnlyModelViewSet):

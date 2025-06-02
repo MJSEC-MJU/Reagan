@@ -8,7 +8,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     const url = details.url;
 
     try {
-      const response = await fetch("백엔드 서버 주소 넣기/predict", {
+      const response = await fetch("http://localhost:8000/api/analysis-requests/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
