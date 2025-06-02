@@ -1,0 +1,4 @@
+ignore_detectors:
+  - name: Generic High Entropy Secret
+    path: DATA/phishing_url_sample_1000.txt
+    reason: Contains only sample phishing URLs; no actual secrets

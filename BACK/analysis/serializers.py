@@ -12,11 +12,15 @@ class AnalysisRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnalysisRequest
+        # overall_status 자동 업데이트를 위해 write 지원
         fields = ('id', 'site_url', 'overall_status', 'created_at', 'updated_at', 'tasks')
+        read_only_fields = ('created_at', 'updated_at')
 
-    # POST /analysis-requests 시 자동으로 3개 작업 생성
+    # 새로운 요청 생성 시 자동으로 3개 작업 생성
     def create(self, validated_data):
         req = AnalysisRequest.objects.create(**validated_data)
+        # 태스크 타입에 맞춰 인스턴스 생성
         for t in ('site', 'packet', 'captcha'):
             AnalysisTask.objects.create(request=req, task_type=t)
         return req
+
