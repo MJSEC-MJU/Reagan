@@ -9,7 +9,7 @@
 
   try {
     // 2) 백엔드에 POST 요청 → analysis-requests에 저장
-    const response = await fetch("http://localhost:8000/api/analysis-requests/", {
+    const response = await fetch("https://reagan.mjsec.kr/api/analysis-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
