@@ -1,12 +1,10 @@
 from pathlib import Path
 import os
-from dotenv import load_dotenv
 
 # ─────────────────────────────────────────────────────────────
 # 기본 경로
 # ─────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")          # .env 파일 읽기
 
 # ─────────────────────────────────────────────────────────────
 # 보안·환경 변수
