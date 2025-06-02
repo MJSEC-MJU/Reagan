@@ -1,9 +1,14 @@
 import json, joblib, pandas as pd
-from packet_AI import extract_all_features   # ← 방금 만든 함수들이 있는 파일명으로 수정
+from .packet_AI import extract_all_features   # ← 방금 만든 함수들이 있는 파일명으로 수정
+from pathlib import Path
 
-# ─ 준비: 모델·컬럼 로드 ─
-clf = joblib.load("rf_model.pkl")
-with open("rf_columns.json", encoding="utf-8") as f:
+BASE_DIR = Path(__file__).resolve().parent    # packet_AI 폴더 절대경로
+MODEL_PATH = BASE_DIR / "rf_model.pkl"
+COLS_PATH  = BASE_DIR / "rf_columns.json"
+
+clf = joblib.load(MODEL_PATH)
+
+with COLS_PATH.open(encoding="utf-8") as f:
     COLUMNS = json.load(f)
 THRESHOLD = 0.5 # 기준값
 

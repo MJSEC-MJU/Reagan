@@ -1,6 +1,6 @@
 from django.utils import timezone
 from .models import AnalysisTask
-from .AI.packet_AI.predict_url import is_malicious
+from analysis.AI.packet_AI.predict_url import is_malicious
 from urllib.parse import urlparse
 
 import requests
