@@ -1,9 +1,12 @@
 import joblib
 import re
+import os
 from urllib.parse import urlparse
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # predictor.py가 있는 폴더
+MODEL_PATH = os.path.join(BASE_DIR, "lightgbm_model.pkl")
 
 # 학습된 모델 로드 (같은 폴더에 lightgbm_model.pkl 있어야 함, 백에서 predictor.py 가져갈때 pkl 파일도 무조건 가져갈 것)
-model = joblib.load("lightgbm_model.pkl")
+model = joblib.load(MODEL_PATH)
 
 # 해당 키워드 수상하게 많이 들어가면 피싱 가능성 높음 (이후에 더 추가 가능)
 SUSPICIOUS_KEYWORDS = ['login', 'secure', 'update', 'verify', 'account', 'bank', 'confirm']

@@ -35,12 +35,14 @@ INSTALLED_APPS = [
 
     # 로컬 앱
     "analysis",
+
 ]
 
 # ─────────────────────────────────────────────────────────────
 # 미들웨어  (CorsMiddleware가 CommonMiddleware보다 ↑)
 # ─────────────────────────────────────────────────────────────
 MIDDLEWARE = [
+
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -52,6 +54,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "site_checker.urls"
+
 
 TEMPLATES = [
     {
