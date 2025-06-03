@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8">
+<title>분석 중…</title>
+<style>body{font-family:sans-serif;text-align:center;margin:3em}</style>
+<h1>잠시만 기다려 주세요…</h1>
+<script>
+const params = new URLSearchParams(location.search);
+const target = params.get("target");
+if(!target){
+  document.body.textContent = "잘못된 요청";
+  throw "no target";
+}
+chrome.runtime.sendMessage(
+  { type:"ANALYZE", url: target },
+  (res)=>{
+    if(!res || !res.ok){ location.href = chrome.runtime.getURL("blocked.html"); return; }
+
+    const { is_phishing, phishing_confidence: conf=0 } = res.data;
+    if(is_phishing && conf >= 0.5){
+      location.href = chrome.runtime.getURL("blocked.html");
+    }else{
+      // ★ 분석 끝 → 원래 페이지로 이동 (히스토리엔 waiting.html 안 남음)
+      location.replace(target);
+    }
+  }
+);
+</script>
