@@ -52,6 +52,6 @@ print(classification_report(y_test, y_pred))
 print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
 print("ROC AUC:", roc_auc_score(y_test, y_proba))
 
-joblib.dump(model, "/Users/phaethon/Desktop/Reagan Project/Reagan/BACK/detection_ai/lightgbm_model.pkl")
+joblib.dump(model, "/Users/phaethon/Desktop/Reagan Project/Reagan/BACK/detection_ai/lightgbm_model_v01.pkl")
 print("모델이 'lightgbm_model.pkl' 파일로 저장되었습니다.")
 
