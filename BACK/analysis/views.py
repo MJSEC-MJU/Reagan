@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from .models import AnalysisRequest, AnalysisTask
 from .serializers import AnalysisRequestSerializer, AnalysisTaskSerializer
 from .utils import run_site, run_captcha, run_packet, _update
+from .mal_site import input_url
 
 
 class AnalysisRequestViewSet(viewsets.ModelViewSet):
@@ -25,10 +26,38 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         # 1) 새로운 AnalysisRequest 인스턴스 생성
         req = serializer.save()
 
+        # URL 가져오기
+        url = req.site_url  # serializer에 정의된 URL 필드명이 다르다면 여기를 맞춰주세요.
+
         # 2) 생성 직후에 생성된 task들을 조회
         site_task: AnalysisTask = req.tasks.get(task_type='site')
         captcha_task: AnalysisTask = req.tasks.get(task_type='captcha')
         packet_task: AnalysisTask = req.tasks.get(task_type='packet')
+
+        # URL 형식 검사
+        if not input_url(url):
+            # 잘못된 URL 처리: 모든 task를 skipped 상태로
+            _update(
+                site_task,
+                status='skipped',
+                result={'reason': 'Invalid URL; skipping all analysis.'},
+                end=True
+            )
+            _update(
+                captcha_task,
+                status='skipped',
+                result={'reason': 'Invalid URL; skipping all analysis.'},
+                end=True
+            )
+            _update(
+                packet_task,
+                status='skipped',
+                result={'reason': 'Invalid URL; skipping all analysis.'},
+                end=True
+            )
+            req.overall_status = 'failed'
+            req.save()
+            return
 
         # 3) 1차: run_site → 결과에 is_phishing, has_captcha 정보가 찍힌다
         run_site(site_task)
@@ -56,7 +85,7 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
             req.save()
             return
 
-        # 5) 피싱이 아니면, 2차: 캡차 유무 검사(has_captcha==True/False)
+        # 5) 피싱이 아니면, 2차: 캡차 유무 검사
         if has_captcha:
             run_captcha(captcha_task)
             captcha_task.refresh_from_db()
@@ -64,9 +93,6 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
             bypass_success = captcha_task.result.get('bypass_success', False)
             if bypass_success:
                 run_packet(packet_task)
-                req.overall_status = 'completed'
-                req.save()
-                return
             else:
                 _update(
                     packet_task,
@@ -75,11 +101,11 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                     end=True
                 )
 
-                req.overall_status = 'completed'
-                req.save()
-                return
+            req.overall_status = 'completed'
+            req.save()
+            return
         else:
-            # 6) 캡차가 없으면 바로 패킷 분석 실행
+            # 6) 캡차가 없으면 바로 패킷 분석 실행, captcha_task는 skipped 처리
             _update(
                 captcha_task,
                 status='skipped',
