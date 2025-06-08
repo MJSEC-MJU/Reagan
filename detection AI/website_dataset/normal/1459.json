@@ -1,9 +1,0 @@
-{
-  "url": "https://elvisadninnn.top",
-  "html": "<html lang=\"en\" style=\"height: 100%;\"><head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"robots\" content=\"noindex,nofollow\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\">\n    <script src=\"/include/vsdk.js\" async=\"\" defer=\"\"></script></head>\n    <body style=\"margin: 0; height: 100%; overflow: hidden;\">\n        <script>\n            (function () {\n                var s = document.createElement(\"script\");\n                s.src = \"/include/vsdk.js\";\n                s.async = 1;\n                s.defer = 1;\n                s[\"data-vm\"] = JSON.stringify({ \n\t\t\t\t\tmode: \"invisible\",\n\t\t\t\t\tendpoint: \"/include/collect\",\n\t\t\t\t\trt: \"1747837591-1.3.3-FB36DBA041CD73E8-F190CF79BA206CF8-e8f2d707cb5df5b2559a44a2949793492bca02b882d1ad4538e5ed6a0eff45ce\"\n\t\t\t\t});\n\n                document.getElementsByTagName(\"head\")[0].appendChild(s);\n            })();\n        </script>\n    \n</body></html>",
-  "scripts": [
-    "",
-    "\n            (function () {\n                var s = document.createElement(\"script\");\n                s.src = \"/include/vsdk.js\";\n                s.async = 1;\n                s.defer = 1;\n                s[\"data-vm\"] = JSON.stringify({ \n\t\t\t\t\tmode: \"invisible\",\n\t\t\t\t\tendpoint: \"/include/collect\",\n\t\t\t\t\trt: \"1747837591-1.3.3-FB36DBA041CD73E8-F190CF79BA206CF8-e8f2d707cb5df5b2559a44a2949793492bca02b882d1ad4538e5ed6a0eff45ce\"\n\t\t\t\t});\n\n                document.getElementsByTagName(\"head\")[0].appendChild(s);\n            })();\n        "
-  ],
-  "styles": []
-}

@@ -1,6 +1,0 @@
-{
-  "url": "https://emax.co.nz",
-  "html": "<html><head>\n\t\t<meta charset=\"UTF-8\">\n\t\t<title>Unable to connect</title>\n\t</head>\n\t<body>\n\t<div style=\"width: 50%;margin-top: 10%; margin-left: 25%;margin-right: 25%;\">\n\t\t<p style=\"font-size: 36px;\">Unable to connect</p>\n\t\t<p>Browser can't establish a connection to the server at emax.co.nz.</p>\n\t\t<ul>\n\t\t\t<li>The site could be temporarily unavailable or too busy. Try again in a few moments.</li>\n\t\t\t<li>If you are unable to load any pages, check your computer's network connection.</li>\n\t\t\t<li>If your computer or network is protected by a firewall or proxy, make sure that browser is permitted to access the Web.</li>\n\t\t</ul>\n\t</div>\t\n\t\n\n</body></html>",
-  "scripts": [],
-  "styles": []
-}

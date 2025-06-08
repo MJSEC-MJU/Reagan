@@ -1,6 +1,0 @@
-{
-  "url": "https://pupcity.com",
-  "html": "<html><head>\n    <title>406 Forbidden</title>\n  </head>\n  <body>\n    <h1>Error 406 Forbidden</h1>\n    <p>Forbidden</p>\n    <h3>Error 54113</h3>\n    <p>Details: cache-icn1450050-ICN 1747840142 956544935</p>\n    <hr>\n    <p>Varnish cache server</p>\n  \n\n</body></html>",
-  "scripts": [],
-  "styles": []
-}

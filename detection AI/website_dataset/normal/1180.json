@@ -1,8 +1,0 @@
-{
-  "url": "https://premierdis.com",
-  "html": "<html lang=\"en\"><head>\n  <meta charset=\"UTF-8\">\n  <title>Access Restricted</title>\n  <style>\n    body {\n      font-family: sans-serif;\n      text-align: center;\n      margin: 50px auto;\n    }\n  </style>\n</head>\n<body>\n  <h1>We apologize, but access is restricted from your current country.</h1>\n  <p>This website is only available for users located in the United States.</p>\n  <p>For further information, please contact your IT service.</p>\n  <p>&nbsp;</p>\n  <h2>If you are located in the United States then you may be using a VPN service.</h2>\n\n</body></html>",
-  "scripts": [],
-  "styles": [
-    "\n    body {\n      font-family: sans-serif;\n      text-align: center;\n      margin: 50px auto;\n    }\n  "
-  ]
-}

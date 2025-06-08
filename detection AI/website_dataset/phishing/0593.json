@@ -1,8 +1,0 @@
-{
-  "url": "https://6r5syudufyiyufyiu-7e58r697ofidtse56r879ofdyt.teemill.com/",
-  "html": "<html lang=\"en\"><head>\n  <meta charset=\"UTF-8\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    body {\n      font-family: sans-serif;\n      text-align: center;\n      position: relative;\n      margin: 0;\n      height: 100vh;\n    }\n\n    body > div {\n      position: absolute;\n      top: 50%;\n      left: 0;\n      right: 0;\n      transform: translateY(-50%);\n      padding: 2rem;\n    }\n  </style>\n</head>\n<body>\n  <div>\n    <h1>Store Under Review</h1>\n    <p>Accounts are independently owned and operated. This site is under review by the hosting provider.</p>\n  </div>\n\n\n</body></html>",
-  "scripts": [],
-  "styles": [
-    "\n    body {\n      font-family: sans-serif;\n      text-align: center;\n      position: relative;\n      margin: 0;\n      height: 100vh;\n    }\n\n    body > div {\n      position: absolute;\n      top: 50%;\n      left: 0;\n      right: 0;\n      transform: translateY(-50%);\n      padding: 2rem;\n    }\n  "
-  ]
-}

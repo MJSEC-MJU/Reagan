@@ -1,8 +1,0 @@
-{
-  "url": "https://severallinks.com",
-  "html": "<html><head>\n    <title></title>\n  </head>\n  <body>\n  <script defer=\"\" src=\"https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015\" integrity=\"sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==\" data-cf-beacon=\"{&quot;rayId&quot;:&quot;9434a798cfac85af&quot;,&quot;version&quot;:&quot;2025.4.0-1-g37f21b1&quot;,&quot;r&quot;:1,&quot;serverTiming&quot;:{&quot;name&quot;:{&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfSpeedBrain&quot;:true,&quot;cfCacheStatus&quot;:true}},&quot;token&quot;:&quot;1e25400811c146d3a77191275624db6f&quot;,&quot;b&quot;:1}\" crossorigin=\"anonymous\"></script>\n\n\n\n</body></html>",
-  "scripts": [
-    ""
-  ],
-  "styles": []
-}
