@@ -1,0 +1,6 @@
+{
+  "url": "https://walletgphantoom.webflow.io/",
+  "html": "<html lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <title>404 - Page not found</title>\n    <meta content=\"The page you are looking for doesn't exist or has been moved.\" name=\"description\">\n    <meta content=\"width=device-width, initial-scale=1\" name=\"viewport\">\n\n    <link href=\"https://app-assets.website-files.com/css/webflow-https-errors.webflow.css\" rel=\"stylesheet\" type=\"text/css\">\n\n    <link href=\"https://app-assets.website-files.com/static/favicon_designer.88fce7c7f8.png\" rel=\"shortcut icon\" type=\"image/x-icon\">\n</head>\n\n<body>\n<div class=\"utility-wrapper\">\n    <div class=\"utility-container\">\n        <div class=\"text-mono\">404</div>\n        <div class=\"utility-content\">\n            <h1>Page not found<br></h1>\n            <p>The page you are looking for doesn't exist or has been moved.</p>\n        </div>\n        <div></div>\n    </div>\n</div>\n\n\n\n</body></html>",
+  "scripts": [],
+  "styles": []
+}

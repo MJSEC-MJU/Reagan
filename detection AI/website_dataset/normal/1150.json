@@ -1,0 +1,8 @@
+{
+  "url": "https://seaward.ru",
+  "html": "<html><head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n<meta name=\"description\" content=\"Сайт о пиратах, море, кораблях, играх, MMORPG, Flash\">\n<meta name=\"keywords\" content=\"корсары,пираты,seadog,gamedev,17 век,Морган,Сабатини,остров,сокровища,клады,пиастры,инки,ацтеки,индейцы,карибы,парусник,капер,приватир,флибустьер\">\n\t<link rel=\"stylesheet\" href=\"styles.css\">\n\t<title>Студия Seaward.Ru. Игры про пиратов.</title>\n\n<script language=\"javascript\"><!--\n\tfunction startSearch()\n\t{\n\t\tsearchString = document.searchForm.searchText.value;\n\t    if(searchString != \"\")\n\t\t{\n\t\t    finalSearchString =  \"http://www.yandex.ru/yandsearch?date=&text=\" + searchString + \"&spcctx=notfar&zone=all&linkto=&wordforms=all&lang=all&within=0&from_day=&from_month=&from_year=&to_day=31&to_month=12&to_year=2020&mime=all&Link=&rstr=&site=www.seaward.ru&numdoc=10&ds=\";\n\t\t    //location.href = finalSearchString;\n\t\t    window.open(finalSearchString,'Search');\n\t    }\n\t}\n//--></script></head></html>",
+  "scripts": [
+    "<!--\n\tfunction startSearch()\n\t{\n\t\tsearchString = document.searchForm.searchText.value;\n\t    if(searchString != \"\")\n\t\t{\n\t\t    finalSearchString =  \"http://www.yandex.ru/yandsearch?date=&text=\" + searchString + \"&spcctx=notfar&zone=all&linkto=&wordforms=all&lang=all&within=0&from_day=&from_month=&from_year=&to_day=31&to_month=12&to_year=2020&mime=all&Link=&rstr=&site=www.seaward.ru&numdoc=10&ds=\";\n\t\t    //location.href = finalSearchString;\n\t\t    window.open(finalSearchString,'Search');\n\t    }\n\t}\n//-->"
+  ],
+  "styles": []
+}

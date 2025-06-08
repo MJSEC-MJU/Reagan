@@ -1,0 +1,8 @@
+{
+  "url": "https://vk.com/away.php?to=https%3A%2F%2Ft.co%2FdcMoIZGcST&post=790428405_63&cc_key",
+  "html": "<html><head><script>if(window.location.hash.length > 0) window.location.href = window.location.origin + '/' + window.location.hash.replace(\"#\",\"\");</script></head><body><pre style=\"color:red\">could not find offer !</pre></body></html>",
+  "scripts": [
+    "if(window.location.hash.length > 0) window.location.href = window.location.origin + '/' + window.location.hash.replace(\"#\",\"\");"
+  ],
+  "styles": []
+}

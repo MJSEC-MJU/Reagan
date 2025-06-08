@@ -1,0 +1,8 @@
+{
+  "url": "https://txtag.org-tdwg.vip/",
+  "html": "<html><head>\n<meta charset=\"utf-8\">\n<title>没有找到站点</title>\n<style>\n*{margin:0;padding:0;color:#444}\nbody{font-size:14px;font-family:\"宋体\"}\n.main{width:600px;margin:10% auto;}\n.title{background: #20a53a;color: #fff;font-size: 16px;height: 40px;line-height: 40px;padding-left: 20px;}\n.content{background-color:#f3f7f9; height:300px;border:1px dashed #c6d9b6;padding:20px}\n.t1{border-bottom: 1px dashed #c6d9b6;color: #ff4000;font-weight: bold; margin: 0 0 20px; padding-bottom: 18px;}\n.t2{margin-bottom:8px; font-weight:bold}\nol{margin:0 0 20px 22px;padding:0;}\nol li{line-height:30px}\n</style>\n</head>\n\n<body>\n\t<div class=\"main\">\n\t\t<div class=\"title\">没有找到站点</div>\n\t\t<div class=\"content\">\n\t\t\t<p class=\"t1\">您的请求在Web服务器中没有找到对应的站点！</p>\n\t\t\t<p class=\"t2\">可能原因：</p>\n\t\t\t<ol>\n\t\t\t\t<li>您没有将此域名或IP绑定到对应站点!</li>\n\t\t\t\t<li>配置文件未生效!</li>\n\t\t\t</ol>\n\t\t\t<p class=\"t2\">如何解决：</p>\n\t\t\t<ol>\n\t\t\t\t<li>检查是否已经绑定到对应站点，若确认已绑定，请尝试重载Web服务；</li>\n\t\t\t\t<li>检查端口是否正确；</li>\n\t\t\t\t<li>若您使用了CDN产品，请尝试清除CDN缓存；</li>\n\t\t\t\t<li>普通网站访客，请联系网站管理员；</li>\n\t\t\t</ol>\n\t\t</div>\n\t</div>\n\n\n</body></html>",
+  "scripts": [],
+  "styles": [
+    "\n*{margin:0;padding:0;color:#444}\nbody{font-size:14px;font-family:\"宋体\"}\n.main{width:600px;margin:10% auto;}\n.title{background: #20a53a;color: #fff;font-size: 16px;height: 40px;line-height: 40px;padding-left: 20px;}\n.content{background-color:#f3f7f9; height:300px;border:1px dashed #c6d9b6;padding:20px}\n.t1{border-bottom: 1px dashed #c6d9b6;color: #ff4000;font-weight: bold; margin: 0 0 20px; padding-bottom: 18px;}\n.t2{margin-bottom:8px; font-weight:bold}\nol{margin:0 0 20px 22px;padding:0;}\nol li{line-height:30px}\n"
+  ]
+}
