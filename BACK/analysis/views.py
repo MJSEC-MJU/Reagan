@@ -35,7 +35,7 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         packet_task: AnalysisTask = req.tasks.get(task_type='packet')
 
         # URL 형식 검사
-        if not input_url(url):
+        if input_url(url):
             # 잘못된 URL 처리: 모든 task를 skipped 상태로
             _update(
                 site_task,
