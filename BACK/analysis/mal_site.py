@@ -2,6 +2,7 @@ import sys
 import time
 import uuid
 import json
+import platform
 from urllib.parse import parse_qs
 
 from selenium import webdriver
@@ -10,9 +11,25 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# 활성화된 <input>요소를 모두 찾아서 무작위 문자열 입력
+def create_chrome_driver():
+    chrome_options = Options()
+    system = platform.system()
+
+    if system == "Linux":
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
+    elif system == "Windows":
+        # chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+    else:
+        chrome_options.add_argument("--disable-gpu")
+
+    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+    return webdriver.Chrome(options=chrome_options)
+
 def fill_inputs_in_context(driver, sent_values):
-    xpath = "//input[@name and (boolean(@type)=false() or translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')!='hidden')]"
+    xpath = "//input[@name and (boolean(@type)=false() or translate(@type,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')!='hidden')]"
     input_elements = driver.find_elements(By.XPATH, xpath)
 
     for elem in input_elements:
@@ -30,7 +47,6 @@ def fill_inputs_in_context(driver, sent_values):
             print(f"  ⚠️ '{field_name}' 입력 실패: {e}")
             continue
 
-# Chrome Performance 로그에서 postData를 파싱한 뒤, sent_values에 들어간 값(expected) 안에 actual 값(actual)이 포함되어 있는지 확인합니다.
 def extract_post_data_from_logs(logs, sent_values):
     msgs = []
     for entry in logs:
@@ -55,38 +71,24 @@ def extract_post_data_from_logs(logs, sent_values):
                         break
 
     print("\n=== 필드별 비교 결과 ===")
+    all_ok = True
     for field_name, expected in sent_values.items():
         actual_list = parsed_params.get(field_name)
         if actual_list:
             actual = actual_list[0]
-            # “actual이 expected 안에 포함되어 있으면 True”
-            if actual in expected:
-                print(f"  • [{field_name}] 포함: True  (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
-                return True
-            else:
-                print(f"  • [{field_name}] 포함: False (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
-                return False
+            ok = (actual in expected)
+            print(f"  • [{field_name}] 포함: {ok}  (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
         else:
-            print(f"  • [{field_name}] 값 없음: True (보낸 값 = '{expected}' / 패킷에는 해당 필드 없음)")
-            return True
+            ok = True
+            print(f"  • [{field_name}] 값 없음: {ok} (보낸 값 = '{expected}' / 패킷에는 해당 필드 없음)")
+        all_ok = all_ok and ok
+
     print("============================\n")
+    return all_ok
 
 def input_url(target_url):
     a = False
-    # 1) ChromeOptions 준비
-    chrome_options = Options()
-    # 필요하면 주석 해제하여 헤드리스 모드 사용 가능
-    # chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-
-    # 2) Performance 로그(네트워크)를 활성화하기 위해 Options에 로깅 설정 추가
-    chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-
-    # 3) ChromeDriver 실행 (desired_capabilities 대신 옵션에 capability를 넣음)
-    driver = webdriver.Chrome(options=chrome_options)
-
-    # 4) CDP로 Network 수집 활성화
+    driver = create_chrome_driver()
     driver.execute_cdp_cmd("Network.enable", {})
 
     try:
@@ -95,12 +97,9 @@ def input_url(target_url):
         time.sleep(1)
 
         sent_values = {}
-
-        # 5) 메인 문서에서 입력 필드 채우기
         print("▶ 메인 문서에서 입력 필드 탐색 및 채우기")
         fill_inputs_in_context(driver, sent_values)
 
-        # 6) 1단계 iframe 순회하며 내부 입력 필드 채우기
         iframe_elements = driver.find_elements(By.TAG_NAME, "iframe")
         for idx, iframe in enumerate(iframe_elements, start=1):
             try:
@@ -117,12 +116,10 @@ def input_url(target_url):
             driver.quit()
             return True
 
-        # 7) 입력한 랜덤 문자열들 출력
         print("\n[+] 입력을 시도한 필드 및 랜덤 문자열 목록")
         for k, v in sent_values.items():
             print(f"  - {k} = {v}")
 
-        # 8) 첫 번째 <form> 요소 찾아서 submit()
         try:
             form_elem = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//form"))
@@ -134,20 +131,14 @@ def input_url(target_url):
 
         print("\n[+] 폼을 전송(submit)합니다...")
         driver.execute_script("arguments[0].submit();", form_elem)
-
-        # 9) 네트워크 요청이 잡힐 때까지 잠시 대기
         time.sleep(3)
 
-        # 10) Performance 로그 전체 가져오기
         logs = driver.get_log("performance")
-
-        # 11) 로그에서 POST data 파싱하여 비교
         a = extract_post_data_from_logs(logs, sent_values)
 
     finally:
         driver.quit()
         return a
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -155,4 +146,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     target_url = sys.argv[1]
-    input_url(target_url)
+    ok = input_url(target_url)
+    sys.exit(0 if ok else 1)
