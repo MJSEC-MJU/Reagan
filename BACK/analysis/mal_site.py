@@ -62,13 +62,17 @@ def extract_post_data_from_logs(logs, sent_values):
             # “actual이 expected 안에 포함되어 있으면 True”
             if actual in expected:
                 print(f"  • [{field_name}] 포함: True  (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
+                return True
             else:
                 print(f"  • [{field_name}] 포함: False (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
+                return False
         else:
-            print(f"  • [{field_name}] 값 없음: False (보낸 값 = '{expected}' / 패킷에는 해당 필드 없음)")
+            print(f"  • [{field_name}] 값 없음: True (보낸 값 = '{expected}' / 패킷에는 해당 필드 없음)")
+            return True
     print("============================\n")
 
 def input_url(target_url):
+    a = False
     # 1) ChromeOptions 준비
     chrome_options = Options()
     # 필요하면 주석 해제하여 헤드리스 모드 사용 가능
@@ -111,7 +115,7 @@ def input_url(target_url):
         if not sent_values:
             print("⚠️ 입력할 <input> 요소를 전혀 찾지 못했습니다.")
             driver.quit()
-            sys.exit(1)
+            return True
 
         # 7) 입력한 랜덤 문자열들 출력
         print("\n[+] 입력을 시도한 필드 및 랜덤 문자열 목록")
@@ -126,7 +130,7 @@ def input_url(target_url):
         except Exception:
             print("⚠️ <form> 요소를 찾을 수 없어 전송할 수 없습니다.")
             driver.quit()
-            sys.exit(1)
+            return True
 
         print("\n[+] 폼을 전송(submit)합니다...")
         driver.execute_script("arguments[0].submit();", form_elem)
@@ -138,10 +142,11 @@ def input_url(target_url):
         logs = driver.get_log("performance")
 
         # 11) 로그에서 POST data 파싱하여 비교
-        extract_post_data_from_logs(logs, sent_values)
+        a = extract_post_data_from_logs(logs, sent_values)
 
     finally:
         driver.quit()
+        return a
 
 
 if __name__ == "__main__":
