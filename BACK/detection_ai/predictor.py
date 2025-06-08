@@ -42,3 +42,10 @@ def predict_url(url):
         "phishing": bool(prediction),
         "confidence": float(round(probability, 3))
     }
+
+# 테스트 용이라 지워도 됨
+if __name__ == "__main__":
+    test_url = "https://drive.google.com/drive/u/0/"
+    result = predict_url(test_url)
+    print(result)
+
