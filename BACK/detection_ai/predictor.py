@@ -32,7 +32,7 @@ def extract_features(url):
         'is_shortened': any(s in url for s in ['bit.ly', 'tinyurl.com', 'goo.gl'])
     }
 
-# 예측 함수 나중에 백엔드 연결할때 해당 함수 불러오기!!!
+# 예측 함수 나중에 백엔드 연결할때 해당 함수 불러오기!!!#
 def predict_url(url):
     features = extract_features(url)
     X = [list(features.values())]
