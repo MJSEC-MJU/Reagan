@@ -134,9 +134,14 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 CORS_ALLOW_CREDENTIALS = False
 CORS_ALLOW_HEADERS     = ["content-type"]
+<<<<<<< HEAD
 CORS_ALLOW_METHODS     = ["GET", "POST", "OPTIONS"] 
+=======
+CORS_ALLOW_METHODS     = ["GET", "POST", "OPTIONS"]
+
+>>>>>>> 36d15183961e05c96d41916d499ac9d13d79dc60
 CSRF_TRUSTED_ORIGINS = [
-    "https://reagan.mjsec.kr",
+    "https://reagan.mjsec.kr"
 ]
 
 

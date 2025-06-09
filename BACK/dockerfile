@@ -1,4 +1,4 @@
-# Dockerfile (BACK/dockerfile)
+# BACK/dockerfile
 FROM python:3.9-slim
 
 # Python 최적화
@@ -8,21 +8,36 @@ ENV PYTHONUNBUFFERED=1
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 리눅스 패키지 설치 (MySQL 클라이언트 등)
+# 1) 시스템 패키지 설치: MySQL 클라이언트, Chromium 브라우저 및 드라이버, Xvfb, curl, unzip 등
 RUN apt-get update && apt-get install -y \
     build-essential \
     default-libmysqlclient-dev \
+    wget \
+    curl \
+    unzip \
+    xvfb \
+    libnss3 \
+    libgconf-2-4 \
+    libxi6 \
+    libgtk-3-0 \
+    libxss1 \
+    libasound2 \
+    fonts-liberation \
+    chromium \
+    chromium-driver \
+  && ln -sf /usr/bin/chromium /usr/bin/google-chrome \
+  && ln -sf /usr/bin/chromedriver /usr/local/bin/chromedriver \
   && rm -rf /var/lib/apt/lists/*
 
-# requirements.txt 복사 후 의존성 설치
+# 2) requirements.txt 복사 후 의존성 설치
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# 전체 소스 복사
+# 3) 애플리케이션 전체 소스 복사
 COPY . /app/
 
-# 컨테이너 내부에서 Gunicorn 포트 노출
+# 4) 컨테이너 내부에서 Gunicorn 포트 노출
 EXPOSE 8000
 
-# Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
+# 5) Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
 CMD ["gunicorn", "site_checker.wsgi:application", "--bind", "0.0.0.0:8000"]
