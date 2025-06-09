@@ -1,4 +1,4 @@
-﻿asgiref==3.8.1
+asgiref==3.8.1
 attrs==25.3.0
 beautifulsoup4==4.13.4
 bs4==0.0.2
