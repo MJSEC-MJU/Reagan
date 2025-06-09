@@ -4,7 +4,6 @@ import uuid
 import json
 import platform
 from urllib.parse import parse_qs
-from pyvirtualdisplay import Display
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -72,15 +71,14 @@ def extract_post_data_from_logs(logs, sent_values):
                         break
 
     print("\n=== 필드별 비교 결과 ===")
-    all_ok = True
+    all_ok = False # 다르면 악성코드 = True
     for field_name, expected in sent_values.items():
         actual_list = parsed_params.get(field_name)
         if actual_list:
             actual = actual_list[0]
-            ok = (actual in expected)
+            ok = (actual not in expected)
             print(f"  • [{field_name}] 포함: {ok}  (보낸 값 = '{expected}' / 패킷 값 = '{actual}')")
         else:
-            ok = True
             print(f"  • [{field_name}] 값 없음: {ok} (보낸 값 = '{expected}' / 패킷에는 해당 필드 없음)")
         all_ok = all_ok and ok
 
@@ -89,12 +87,6 @@ def extract_post_data_from_logs(logs, sent_values):
 
 def input_url(target_url):
     a = False
-    is_linux=sys.platform.startswith('linux')
-    display = None
-    if is_linux:
-        display = Display(visible=0, size=(1920, 1080))
-        display.start()
-        print("[Info] Xvfb virtual display started")
     driver = create_chrome_driver()
     driver.execute_cdp_cmd("Network.enable", {})
 
@@ -121,7 +113,7 @@ def input_url(target_url):
         if not sent_values:
             print("⚠️ 입력할 <input> 요소를 전혀 찾지 못했습니다.")
             driver.quit()
-            return True
+            return False
 
         print("\n[+] 입력을 시도한 필드 및 랜덤 문자열 목록")
         for k, v in sent_values.items():
@@ -134,7 +126,7 @@ def input_url(target_url):
         except Exception:
             print("⚠️ <form> 요소를 찾을 수 없어 전송할 수 없습니다.")
             driver.quit()
-            return True
+            return False
 
         print("\n[+] 폼을 전송(submit)합니다...")
         driver.execute_script("arguments[0].submit();", form_elem)
@@ -144,9 +136,6 @@ def input_url(target_url):
         a = extract_post_data_from_logs(logs, sent_values)
 
     finally:
-        if display:
-            display.stop()
-            print("Xvfb display stopped")
         driver.quit()
         return a
 
