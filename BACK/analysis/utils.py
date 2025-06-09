@@ -291,6 +291,10 @@ def run_packet(task: AnalysisTask):
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
 
         result['input_malicious'] = input_url(url)
+        if not result['is_mal'] and not result['input_malicious']:
+            result['is_phishing'] = False
+        else:
+            result['is_phishing'] = True
         # 3) 결과 저장
         result_payload = result
         _update(task, "completed", result_payload, end=True)

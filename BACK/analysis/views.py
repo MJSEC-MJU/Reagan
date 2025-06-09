@@ -45,21 +45,24 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
                 site_task,
                 status='skipped',
                 result={'is_phishing': False,
-                        'phishing_confidence': 0.0},
+                        'phishing_confidence': 0.0,
+                        'reason' : "Whitelist 포함 url"},
                 end=True
             )
             _update(
                 captcha_task,
                 status='skipped',
                 result={'is_phishing': False,
-                        'phishing_confidence': 0.0},
+                        'phishing_confidence': 0.0,
+                        'reason' : "Whitelist 포함 url"},
                 end=True
             )
             _update(
                 packet_task,
                 status='skipped',
                 result={'is_phishing': False,
-                        'phishing_confidence': 0.0},
+                        'phishing_confidence': 0.0,
+                        'reason' : "Whitelist 포함 url"},
                 end=True
             )
 
@@ -105,7 +108,6 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
             req.overall_status = 'completed'
             req.save()
-            return AnalysisRequest
         else:
             # 6) 캡차가 없으면 바로 패킷 분석 실행, captcha_task는 skipped 처리
             _update(
@@ -118,7 +120,9 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
             req.overall_status = 'completed'
             req.save()
-            return AnalysisRequest
+        if not req.tasks.filter(task_type='site').first().result.get('is_phishing') and not req.tasks.filter(task_type='packet').first().result.get('is_phishing'):
+            White_list.objects.create(site_url=url)
+        return
     
 
 
