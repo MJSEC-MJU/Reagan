@@ -1,17 +1,20 @@
-# BACK/dockerfile
+# Dockerfile (BACK/dockerfile)
 FROM python:3.9-slim
 
 # Python 최적화
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# 작업 디렉토리 설정
 WORKDIR /app
 
-# 1) 시스템 패키지 설치: MySQL 클라이언트, Chrome, Xvfb, 폰트, 필수 라이브러리
+# 1) 시스템 패키지 설치: MySQL 클라이언트, Chrome 의존성, Xvfb, curl, unzip 등
 RUN apt-get update && apt-get install -y \
     build-essential \
     default-libmysqlclient-dev \
     wget \
+    curl \
+    unzip \
     gnupg2 \
     xvfb \
     libnss3 \
@@ -21,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     libxss1 \
     libasound2 \
     fonts-liberation \
-    # (필요시) chromium-browser 대신 google-chrome-stable 주석 해제
   && rm -rf /var/lib/apt/lists/*
 
 # 2) Google Chrome 저장소 추가 및 설치
@@ -32,7 +34,7 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub \
   && apt-get update && apt-get install -y google-chrome-stable \
   && rm -rf /var/lib/apt/lists/*
 
-# 3) ChromeDriver 설치 (Chrome 버전에 맞춰 자동으로 최신 릴리즈 사용)
+# 3) ChromeDriver 설치 (최신 릴리즈 버전)
 RUN CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE) \
   && wget -O /tmp/chromedriver.zip \
        http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip \
@@ -40,16 +42,15 @@ RUN CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/
   && chmod +x /usr/local/bin/chromedriver \
   && rm /tmp/chromedriver.zip
 
-# 4) requirements 설치
+# requirements.txt 복사 후 의존성 설치
 COPY requirements.txt /app/
-RUN pip install --upgrade pip \
-  && pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# 5) 애플리케이션 코드 복사
+# 애플리케이션 전체 소스 복사
 COPY . /app/
 
-# 6) 포트 노출
+# 컨테이너 내부에서 Gunicorn 포트 노출
 EXPOSE 8000
 
-# 7) Gunicorn 실행
+# Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
 CMD ["gunicorn", "site_checker.wsgi:application", "--bind", "0.0.0.0:8000"]
