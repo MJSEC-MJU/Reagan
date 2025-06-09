@@ -19,8 +19,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # AI 기반 피싱 예측 모듈 import
-from detection_ai.predictor import predict_url
-
+from .AI.detection_ai.predictor import predict_url
 
 def _update(task: AnalysisTask, status: str, result=None, start=False, end=False):
     """

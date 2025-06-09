@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny
 
-from .models import AnalysisRequest, AnalysisTask
+from .models import AnalysisRequest, AnalysisTask, White_list
 from .serializers import AnalysisRequestSerializer, AnalysisTaskSerializer
 from .utils import run_site, run_captcha, run_packet, _update
 
@@ -33,37 +33,40 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         captcha_task: AnalysisTask = req.tasks.get(task_type='captcha')
         packet_task: AnalysisTask = req.tasks.get(task_type='packet')
 
-        # URL 형식 검사
-        # if not input_url(url):
-        #     # 잘못된 URL 처리: 모든 task를 skipped 상태로
-        #     _update(
-        #         site_task,
-        #         status='skipped',
-        #         result={'reason': 'Invalid URL; skipping all analysis.'},
-        #         end=True
-        #     )
-        #     _update(
-        #         captcha_task,
-        #         status='skipped',
-        #         result={'reason': 'Invalid URL; skipping all analysis.'},
-        #         end=True
-        #     )
-        #     _update(
-        #         packet_task,
-        #         status='skipped',
-        #         result={'reason': 'Invalid URL; skipping all analysis.'},
-        #         end=True
-        #     )
-        #     req.overall_status = 'failed'
-        #     req.save()
-        #     return
-
         # 3) 1차: run_site → 결과에 is_phishing, has_captcha 정보가 찍힌다
         run_site(site_task)
         site_task.refresh_from_db()  # run_site가 DB를 업데이트했으므로 최신화
 
         is_phishing = site_task.result.get('is_phishing', False)
         has_captcha = site_task.result.get('has_captcha', False)
+
+        if White_list.objects.filter(site_url=url).exists():
+            _update(
+                site_task,
+                status='skipped',
+                result={'is_phishing': False,
+                        'phishing_confidence': 0.0},
+                end=True
+            )
+            _update(
+                captcha_task,
+                status='skipped',
+                result={'is_phishing': False,
+                        'phishing_confidence': 0.0},
+                end=True
+            )
+            _update(
+                packet_task,
+                status='skipped',
+                result={'is_phishing': False,
+                        'phishing_confidence': 0.0},
+                end=True
+            )
+
+            req.overall_status = 'completed'
+            req.save()
+            return AnalysisRequest
+
 
         # 4) 만약 피싱 사이트로 판단되면, 캡차와 패킷 작업은 건너뛰고 skipped 처리
         # if is_phishing:
@@ -82,7 +85,7 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
         #     req.overall_status = 'completed'
         #     req.save()
-        #     return
+        #     return AnalysisRequest
 
         # 5) 피싱이 아니면, 2차: 캡차 유무 검사
         if has_captcha:
@@ -102,7 +105,7 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
             req.overall_status = 'completed'
             req.save()
-            return
+            return AnalysisRequest
         else:
             # 6) 캡차가 없으면 바로 패킷 분석 실행, captcha_task는 skipped 처리
             _update(
@@ -115,7 +118,8 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
 
             req.overall_status = 'completed'
             req.save()
-            return
+            return AnalysisRequest
+    
 
 
 class AnalysisTaskViewSet(viewsets.ReadOnlyModelViewSet):
