@@ -1,4 +1,4 @@
-# Dockerfile (BACK/dockerfile)
+# BACK/dockerfile
 FROM python:3.9-slim
 
 # Python 최적화
@@ -34,11 +34,15 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub \
   && apt-get update && apt-get install -y google-chrome-stable \
   && rm -rf /var/lib/apt/lists/*
 
-# 3) ChromeDriver 설치 (최신 릴리즈 버전)
-RUN CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE) \
-  && wget -O /tmp/chromedriver.zip \
+# 3) ChromeDriver 설치 (Chrome 버전에 맞춰 자동 설치)
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+\\.\\d+') \
+  && CHROME_MAJOR=$(echo "$CHROME_VERSION" | cut -d'.' -f1) \
+  && echo "[Info] Detected Chrome version: $CHROME_VERSION, major: $CHROME_MAJOR" \
+  && CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR) \
+  && echo "[Info] Downloading ChromeDriver version: $CHROMEDRIVER_VERSION" \
+  && wget -q -O /tmp/chromedriver.zip \
        http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip \
-  && unzip /tmp/chromedriver.zip -d /usr/local/bin \
+  && unzip -q /tmp/chromedriver.zip -d /usr/local/bin \
   && chmod +x /usr/local/bin/chromedriver \
   && rm /tmp/chromedriver.zip
 
