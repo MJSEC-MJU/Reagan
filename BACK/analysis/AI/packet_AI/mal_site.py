@@ -48,27 +48,42 @@ def fill_inputs_in_context(driver, sent_values):
             continue
 
 def extract_post_data_from_logs(logs, sent_values):
-    msgs = []
-    for entry in logs:
-        try:
-            raw = json.loads(entry["message"])["message"]
-        except Exception:
-            continue
-        msgs.append(raw)
-
+    from urllib.parse import parse_qs
     parsed_params = {}
-    for m in msgs:
-        if m.get("method") == "Network.requestWillBeSent":
-            params = m.get("params", {})
-            request = params.get("request", {})
-            if request.get("method") == "POST":
-                headers = request.get("headers", {})
-                content_type = headers.get("Content-Type", "")
-                if "application/x-www-form-urlencoded" in content_type:
-                    post_data = request.get("postData", "")
-                    if post_data:
-                        parsed_params = parse_qs(post_data, keep_blank_values=True)
-                        break
+     # selenium-wire 요청 리스트인 경우
+    if logs and hasattr(logs[0], 'method') and hasattr(logs[0], 'body'):
+        
+        # driver.requests 중 POST 요청 찾기
+        for req in logs:
+            if req.method == "POST":
+                try:
+                    parsed_params = parse_qs(req.body.decode(), keep_blank_values=True)
+                except Exception:
+                    pass
+                break
+    else: 
+        # CDP performance 로그인 경우       
+        msgs = []
+        for entry in logs:
+            try:
+                raw = json.loads(entry["message"])["message"]
+            except Exception:
+                continue
+            msgs.append(raw)
+
+        parsed_params = {}
+        for m in msgs:
+            if m.get("method") == "Network.requestWillBeSent":
+                params = m.get("params", {})
+                request = params.get("request", {})
+                if request.get("method") == "POST":
+                    headers = request.get("headers", {})
+                    content_type = headers.get("Content-Type", "")
+                    if "application/x-www-form-urlencoded" in content_type:
+                        post_data = request.get("postData", "")
+                        if post_data:
+                            parsed_params = parse_qs(post_data, keep_blank_values=True)
+                            break
 
     print("\n=== 필드별 비교 결과 ===")
     all_ok = False # 다르면 악성코드 = True
@@ -85,16 +100,21 @@ def extract_post_data_from_logs(logs, sent_values):
     print("============================\n")
     return all_ok
 
-def input_url(target_url):
+def input_url(target_url, driver=None):
     a = False
-    driver = create_chrome_driver()
-    driver.execute_cdp_cmd("Network.enable", {})
+    if driver is None:
+        driver = create_chrome_driver()
+        
+        own_driver=True
+    else:
+        own_driver=False
+        driver.requests.clear()
 
+    
     try:
-        print(f"[+] {target_url} 페이지에 접속 중...")
-        driver.get(target_url)
-        time.sleep(1)
-
+        if own_driver:
+            driver.get(target_url)
+            time.sleep(1)
         sent_values = {}
         print("▶ 메인 문서에서 입력 필드 탐색 및 채우기")
         fill_inputs_in_context(driver, sent_values)
@@ -129,13 +149,18 @@ def input_url(target_url):
             return False
 
         print("\n[+] 폼을 전송(submit)합니다...")
-        driver.execute_script("arguments[0].submit();", form_elem)
+        form_elem.submit()
         time.sleep(3)
+        if hasattr(driver, 'requests'):
+            logs = driver.requests
+        else:
+            logs = driver.get_log("performance")
 
-        logs = driver.get_log("performance")
         a = extract_post_data_from_logs(logs, sent_values)
-
+        return a
+        
     finally:
+
         driver.quit()
         return a
 

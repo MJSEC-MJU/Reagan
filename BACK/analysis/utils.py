@@ -1,4 +1,12 @@
 # your_app/backends/captcha_analysis.py
+import sys, os
+SOLVE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "Capcha", "breakrecapcha_v2")
+)
+sys.path.insert(0, SOLVE_DIR)   # 이 줄이 반드시 와야 합니다
+from solve import main as get_bypass_driver
+from django.utils import timezone
+from .models import AnalysisTask
 
 from django.utils import timezone
 from .models import AnalysisTask
@@ -178,80 +186,24 @@ def run_site(task: AnalysisTask):
 def run_captcha(task: AnalysisTask):
     """
     CAPTCHA 우회 작업:
-    - undetected-chromedriver 기반으로 브라우저를 실행하여
-      가능한한 사람처럼 보이도록 Stealth 옵션 설정
-    - 페이지 로드 후 CAPTCHA 요소 탐지
-    - (추후) 실제 캡챠 솔버 로직을 삽입하여 bypass_success 결정
+    - 실제 캡챠 솔버 로직을 삽입하여 bypass_success 결정
     - 결과 저장
     - bypass 성공 시 run_packet 호출
     """
     _update(task, 'running', start=True)
-
-    options = uc.ChromeOptions()
-    options.headless = True
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-infobars")
-    options.add_argument("--window-size=1366,768")
-
-    # 랜덤 User-Agent
-    ua = UserAgent().random
-    options.add_argument(f"--user-agent={ua}")
-
     driver = None
     try:
-        # 1) Stealth 크롬 실행
-        driver = uc.Chrome(options=options)
-
-        # 2) 해당 사이트로 이동
-        driver.get(task.request.site_url)
-        # 사람처럼 랜덤 딜레이
-        time.sleep(random.uniform(2.0, 4.5))
-
-        # 3) CAPTCHA 요소가 있는지 탐지 (iframe, input[class*='captcha'] 등)
-        captcha_detected = False
-        try:
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src, 'recaptcha')]"))
-            )
-            captcha_detected = True
-        except:
-            try:
-                WebDriverWait(driver, 3).until(
-                    EC.presence_of_element_located((By.XPATH, "//input[contains(@class, 'captcha')]"))
-                )
-                captcha_detected = True
-            except:
-                captcha_detected = False
-
-        # 4) (선택) 실제 캡챠 솔버 로직 추가
-        #    예시:
-        #    if captcha_detected:
-        #        # 스크린샷 → OCR → 자동 입력 → 확인 버튼 클릭 ...
-        #        bypass_success = 실제_우회_결과  # True/False
-        #    else:
-        #        bypass_success = True  # 이미 캡챠가 없는 상태
-        #
-        #    아래에서는 예제로 bypass_success = captcha_detected으로 가정합니다.
-        if captcha_detected:
-            # TODO: 실제 캡챠 솔버 로직을 구현한 뒤 bypass_success 값을 결정하세요.
-            bypass_success = True
-        else:
-            bypass_success = True
-
-        # 5) 결과 저장
-        result = {
-            'site_url': task.request.site_url,
-            'captcha_detected': captcha_detected,
-            'bypass_success': bypass_success,
-            'note': '스텔스 크롬으로 페이지 로드 및 탐지 완료',
-        }
-        _update(task, 'completed', result, end=True)
+        driver = get_bypass_driver(task.request.site_url)
+        if driver is None:
+            raise RuntimeError("CAPTCHA bypass failed")
+            
+        _update(task, 'completed',
+                {'captcha_detected': True, 'bypass_success': True},
+                end=True)
 
         # 6) bypass 성공하면 run_packet 호출
-        if bypass_success:
-            run_packet(task)
+        if driver:
+            run_packet(task, driver)
         else:
             _update(
                 task,
@@ -267,7 +219,7 @@ def run_captcha(task: AnalysisTask):
             driver.quit()
 
 
-def run_packet(task: AnalysisTask):
+def run_packet(task: AnalysisTask, driver=None):
     """
     네트워크 패킷 분석 작업:
       1) task.request에서 packet_url이 있으면 그걸 사용, 없으면 site_url 사용
@@ -291,7 +243,7 @@ def run_packet(task: AnalysisTask):
             # 필요하다면 취약점에 기록
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
 
-        result['input_malicious'] = input_url(url)
+        result['input_malicious'] = input_url(url, driver=driver)
         # 3) 결과 저장
         result_payload = result
         _update(task, "completed", result_payload, end=True)
@@ -299,3 +251,6 @@ def run_packet(task: AnalysisTask):
     except Exception as e:
         # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
         _update(task, "failed", {"error": str(e)}, end=True)
+    finally:
+        if driver:
+            driver.quit()

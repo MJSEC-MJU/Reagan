@@ -23,8 +23,9 @@ def create_firefox_with_profile(profile_path: str = None) -> webdriver.Firefox:
         profile = FirefoxProfile()
 
     # Selenium 4부터는 firefox_profile 인자를 직접 받지 않고 Options.profile에 지정해야 함
-    options.profile = profile
+    #options.profile = profile
 
     # 3) 드라이버 실행 (프록시나 capabilities 없이)
-    driver = webdriver.Firefox(options=options)
-    return driver
+    #driver = webdriver.Firefox(options=options)
+    #return driver
+    return profile

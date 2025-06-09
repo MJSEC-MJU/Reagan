@@ -87,18 +87,6 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         # 5) 피싱이 아니면, 2차: 캡차 유무 검사
         if has_captcha:
             run_captcha(captcha_task)
-            captcha_task.refresh_from_db()
-
-            bypass_success = captcha_task.result.get('bypass_success', False)
-            if bypass_success:
-                run_packet(packet_task)
-            else:
-                _update(
-                    packet_task,
-                    status='skipped',
-                    result={'reason': 'Captcha bypass failed; skipping packet analysis.'},
-                    end=True
-                )
 
             req.overall_status = 'completed'
             req.save()

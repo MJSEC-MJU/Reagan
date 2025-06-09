@@ -3,6 +3,8 @@ import sys
 import time
 import random
 import io
+from selenium import webdriver
+from seleniumwire.webdriver import Firefox 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -23,10 +25,13 @@ from PIL import Image, ImageChops
 # ============== 설정 파트 ==============
 
 # 1) YOLOv8 모델 가중치 경로
-YOLO_CLS_WEIGHTS = "weights/final.pt"
-YOLO_SEG_WEIGHTS = "weights/yolo_seg.pt"
+HERE = os.path.dirname(os.path.abspath(__file__))
 
-YOLO_SECOND_WEIGHTS="weights/yolo_cls.pt"
+# weights 폴더는 breakrecapcha_v2/weights 에 있으므로
+WEIGHTS_DIR = os.path.join(HERE, "weights")
+YOLO_CLS_WEIGHTS     = os.path.join(WEIGHTS_DIR, "final.pt")
+YOLO_SEG_WEIGHTS     = os.path.join(WEIGHTS_DIR, "yolo_seg.pt")
+YOLO_SECOND_WEIGHTS  = os.path.join(WEIGHTS_DIR, "yolo_cls.pt")
 
 USE_SECONDARY = {"오토바이", "자전거", "motorcycle", "bicycle", "motorcycles", "bicycles"}
 # 2) Firefox 프로필 경로
@@ -43,7 +48,16 @@ def launch_browser_with_profile():
     """
     Firefox 브라우저를 새 프로필로 실행 → 최대화 시도
     """
-    driver = create_firefox_with_profile(FIREFOX_PROFILE_PATH)
+    options = webdriver.FirefoxOptions()
+    sw_opts = {
+        'enable_har': True,
+        'enable_http2': True,
+    }
+    profile = create_firefox_with_profile(FIREFOX_PROFILE_PATH)
+    options.profile = profile
+    driver =  Firefox(options=options,
+                seleniumwire_options=sw_opts,
+            )
     try:
         driver.maximize_window()
         time.sleep(0.5)
