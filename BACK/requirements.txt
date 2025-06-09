@@ -24,7 +24,7 @@ pytz==2025.2
 PyVirtualDisplay==3.0
 requests==2.32.3
 requests-file==2.1.0
-scikit-learn==1.6.1
+scikit-learn==1.5.2
 scipy==1.11.4
 selenium==4.33.0
 setuptools==80.9.0
