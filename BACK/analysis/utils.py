@@ -2,7 +2,8 @@
 
 from django.utils import timezone
 from .models import AnalysisTask
-from analysis.AI.packet_AI.predict_url import is_malicious
+from .AI.packet_AI.predict_url import is_malicious
+from .AI.packet_AI.mal_site import input_url
 from urllib.parse import urlparse
 
 import time
@@ -284,35 +285,16 @@ def run_packet(task: AnalysisTask):
         # 2) is_malicious 호출 및 반환값 타입 검사
         try:
             result = is_malicious(url)
+            result['input_malicious'] = input_url(url)
         except Exception as e:
             # is_malicious 자체 호출 실패 시 stub 처리
             result = {}
             # 필요하다면 취약점에 기록
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
 
-        # 2-1) is_malicious가 딕셔너리인지 확인
-        if isinstance(result, dict):
-            # 정상적으로 {"label": True/False, ...} 형태라면 가져옴
-            verdict = result.get("label", False)
-        else:
-            # 문자열 등 다른 타입이라면, 단순히 문자열 값에 따라 판단
-            text = str(result).lower()
-            if text in ("true", "1", "malicious"):
-                verdict = True
-            else:
-                verdict = False
-
         # 3) 결과 저장
-        result_payload = {
-            "todo": "packet analysis pending",
-            "url": url,
-            "malicious": verdict,
-        }
+        result_payload = result
         _update(task, "completed", result_payload, end=True)
-
-    except Exception as e:
-        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
-        _update(task, "failed", {"error": str(e)}, end=True)
 
     except Exception as e:
         # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
