@@ -285,13 +285,13 @@ def run_packet(task: AnalysisTask):
         # 2) is_malicious 호출 및 반환값 타입 검사
         try:
             result = is_malicious(url)
-            result['input_malicious'] = input_url(url)
         except Exception as e:
             # is_malicious 자체 호출 실패 시 stub 처리
             result = {}
             # 필요하다면 취약점에 기록
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
 
+        result['input_malicious'] = input_url(url)
         # 3) 결과 저장
         result_payload = result
         _update(task, "completed", result_payload, end=True)
