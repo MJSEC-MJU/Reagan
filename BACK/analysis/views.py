@@ -7,7 +7,6 @@ from rest_framework.permissions import AllowAny
 from .models import AnalysisRequest, AnalysisTask
 from .serializers import AnalysisRequestSerializer, AnalysisTaskSerializer
 from .utils import run_site, run_captcha, run_packet, _update
-from .mal_site import input_url
 
 
 class AnalysisRequestViewSet(viewsets.ModelViewSet):
@@ -35,29 +34,29 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         packet_task: AnalysisTask = req.tasks.get(task_type='packet')
 
         # URL 형식 검사
-        if input_url(url):
-            # 잘못된 URL 처리: 모든 task를 skipped 상태로
-            _update(
-                site_task,
-                status='skipped',
-                result={'reason': 'Invalid URL; skipping all analysis.'},
-                end=True
-            )
-            _update(
-                captcha_task,
-                status='skipped',
-                result={'reason': 'Invalid URL; skipping all analysis.'},
-                end=True
-            )
-            _update(
-                packet_task,
-                status='skipped',
-                result={'reason': 'Invalid URL; skipping all analysis.'},
-                end=True
-            )
-            req.overall_status = 'failed'
-            req.save()
-            return
+        # if not input_url(url):
+        #     # 잘못된 URL 처리: 모든 task를 skipped 상태로
+        #     _update(
+        #         site_task,
+        #         status='skipped',
+        #         result={'reason': 'Invalid URL; skipping all analysis.'},
+        #         end=True
+        #     )
+        #     _update(
+        #         captcha_task,
+        #         status='skipped',
+        #         result={'reason': 'Invalid URL; skipping all analysis.'},
+        #         end=True
+        #     )
+        #     _update(
+        #         packet_task,
+        #         status='skipped',
+        #         result={'reason': 'Invalid URL; skipping all analysis.'},
+        #         end=True
+        #     )
+        #     req.overall_status = 'failed'
+        #     req.save()
+        #     return
 
         # 3) 1차: run_site → 결과에 is_phishing, has_captcha 정보가 찍힌다
         run_site(site_task)
@@ -67,23 +66,23 @@ class AnalysisRequestViewSet(viewsets.ModelViewSet):
         has_captcha = site_task.result.get('has_captcha', False)
 
         # 4) 만약 피싱 사이트로 판단되면, 캡차와 패킷 작업은 건너뛰고 skipped 처리
-        if is_phishing:
-            _update(
-                captcha_task,
-                status='skipped',
-                result={'reason': 'Site was classified as phishing; skipping captcha bypass.'},
-                end=True
-            )
-            _update(
-                packet_task,
-                status='skipped',
-                result={'reason': 'Site was classified as phishing; skipping packet analysis.'},
-                end=True
-            )
+        # if is_phishing:
+        #     _update(
+        #         captcha_task,
+        #         status='skipped',
+        #         result={'reason': 'Site was classified as phishing; skipping captcha bypass.'},
+        #         end=True
+        #     )
+        #     _update(
+        #         packet_task,
+        #         status='skipped',
+        #         result={'reason': 'Site was classified as phishing; skipping packet analysis.'},
+        #         end=True
+        #     )
 
-            req.overall_status = 'completed'
-            req.save()
-            return
+        #     req.overall_status = 'completed'
+        #     req.save()
+        #     return
 
         # 5) 피싱이 아니면, 2차: 캡차 유무 검사
         if has_captcha:

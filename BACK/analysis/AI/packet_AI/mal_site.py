@@ -4,6 +4,7 @@ import uuid
 import json
 import platform
 from urllib.parse import parse_qs
+from pyvirtualdisplay import Display
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -88,6 +89,12 @@ def extract_post_data_from_logs(logs, sent_values):
 
 def input_url(target_url):
     a = False
+    is_linux=sys.platform.startswith('linux')
+    display = None
+    if is_linux:
+        display = Display(visible=0, size=(1920, 1080))
+        display.start()
+        print("[Info] Xvfb virtual display started")
     driver = create_chrome_driver()
     driver.execute_cdp_cmd("Network.enable", {})
 
@@ -137,6 +144,9 @@ def input_url(target_url):
         a = extract_post_data_from_logs(logs, sent_values)
 
     finally:
+        if display:
+            display.stop()
+            print("Xvfb display stopped")
         driver.quit()
         return a
 
