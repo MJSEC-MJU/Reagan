@@ -8,14 +8,13 @@ ENV PYTHONUNBUFFERED=1
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 1) 시스템 패키지 설치: MySQL 클라이언트, Chrome 의존성, Xvfb, curl, unzip 등
+# 1) 시스템 패키지 설치: MySQL 클라이언트, Chromium 브라우저 및 드라이버, Xvfb, curl, unzip 등
 RUN apt-get update && apt-get install -y \
     build-essential \
     default-libmysqlclient-dev \
     wget \
     curl \
     unzip \
-    gnupg2 \
     xvfb \
     libnss3 \
     libgconf-2-4 \
@@ -24,37 +23,21 @@ RUN apt-get update && apt-get install -y \
     libxss1 \
     libasound2 \
     fonts-liberation \
+    chromium \
+    chromium-driver \
+  && ln -sf /usr/bin/chromium /usr/bin/google-chrome \
+  && ln -sf /usr/bin/chromedriver /usr/local/bin/chromedriver \
   && rm -rf /var/lib/apt/lists/*
 
-# 2) Google Chrome 저장소 추가 및 설치
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub \
-      | apt-key add - \
-  && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" \
-      > /etc/apt/sources.list.d/google-chrome.list \
-  && apt-get update && apt-get install -y google-chrome-stable \
-  && rm -rf /var/lib/apt/lists/*
-
-# 3) ChromeDriver 설치 (Chrome 버전에 맞춰 자동 설치)
-RUN CHROME_VERSION=$(google-chrome --version | sed -E 's/.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/\1/') \
-  && CHROME_MAJOR=$(echo "$CHROME_VERSION" | cut -d'.' -f1) \
-  && echo "[Info] Detected Chrome version: $CHROME_VERSION, major: $CHROME_MAJOR" \
-  && CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR) \
-  && echo "[Info] Downloading ChromeDriver version: $CHROMEDRIVER_VERSION" \
-  && wget -q -O /tmp/chromedriver.zip \
-       http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip \
-  && unzip -q /tmp/chromedriver.zip -d /usr/local/bin \
-  && chmod +x /usr/local/bin/chromedriver \
-  && rm /tmp/chromedriver.zip
-
-# requirements.txt 복사 후 의존성 설치
+# 2) requirements.txt 복사 후 의존성 설치
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# 애플리케이션 전체 소스 복사
+# 3) 애플리케이션 전체 소스 복사
 COPY . /app/
 
-# 컨테이너 내부에서 Gunicorn 포트 노출
+# 4) 컨테이너 내부에서 Gunicorn 포트 노출
 EXPOSE 8000
 
-# Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
+# 5) Gunicorn으로 Django 실행 (중첩된 reagan 폴더 구조 주의)
 CMD ["gunicorn", "site_checker.wsgi:application", "--bind", "0.0.0.0:8000"]
