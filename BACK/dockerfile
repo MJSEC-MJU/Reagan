@@ -35,7 +35,7 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub \
   && rm -rf /var/lib/apt/lists/*
 
 # 3) ChromeDriver 설치 (Chrome 버전에 맞춰 자동 설치)
-RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+\\.\\d+') \
+RUN CHROME_VERSION=$(google-chrome --version | sed -E 's/.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/\1/') \
   && CHROME_MAJOR=$(echo "$CHROME_VERSION" | cut -d'.' -f1) \
   && echo "[Info] Detected Chrome version: $CHROME_VERSION, major: $CHROME_MAJOR" \
   && CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR) \
