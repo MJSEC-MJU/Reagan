@@ -109,8 +109,6 @@ def input_url(target_url, driver=None):
     else:
         own_driver=False
         driver.requests.clear()
-
-    
     try:
         if own_driver:
             driver.get(target_url)

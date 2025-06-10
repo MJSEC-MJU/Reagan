@@ -1,5 +1,7 @@
 # your_app/backends/captcha_analysis.py
 import sys, os
+import re
+from selenium import webdriver
 SOLVE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "Capcha", "breakrecapcha_v2")
 )
@@ -93,31 +95,42 @@ def analyze_phishing(source: str, base_url: str) -> bool:
     return False
 
 
-def detect_captcha(source: str) -> bool:
+from bs4 import BeautifulSoup
+
+def detect_captcha_type(source: str) -> str:
     """
-    HTML 소스 내 CAPTCHA 요소 탐지:
-    - class/id, iframe src, img alt 검사
+    reCAPTCHA v2/v3, hCaptcha, 기타, 없음 구분
+    반환값: 'recaptcha_v3', 'recaptcha_v2_invisible', 'recaptcha_v2', 'hcaptcha', 'other', 'none'
     """
     soup = BeautifulSoup(source, 'html.parser')
 
-    # 1) class 혹은 id에 'captcha' 키워드가 포함된 태그가 있는지 확인
-    for tag in soup.find_all():
-        for val in tag.attrs.values():
-            if 'captcha' in str(val).lower():
-                return True
+    # 1) reCAPTCHA v2 위젯 검사 (visible/invisible)
+    div = soup.find('div', class_='g-recaptcha')
+    if div:
+        size = div.get('data-size', '').lower()
+        if size == 'invisible':
+            return 'recaptcha_v2_invisible'
+        else:
+            return 'recaptcha_v2'
 
-    # 2) reCAPTCHA iframe 검사
+    # 2) reCAPTCHA v3: render 파라미터가 있는 API 스크립트
+    for script in soup.find_all('script', src=True):
+        src = script['src']
+        if 'recaptcha/api.js' in src and 'render=' in src:
+            return 'recaptcha_v3'
+
+    # 3) hCaptcha iframe 검사
     for iframe in soup.find_all('iframe', src=True):
-        src = iframe['src']
-        if 'recaptcha' in src.lower() or 'captcha' in src.lower():
-            return True
+        if 'hcaptcha.com' in iframe['src'].lower():
+            return 'hcaptcha'
 
-    # 3) 이미지 ALT 텍스트 검사
-    for img in soup.find_all('img', alt=True):
-        if 'captcha' in img['alt'].lower():
-            return True
+    # 4) 기타 이미지 CAPTCHA
+    if soup.find('img', alt=lambda t: t and 'captcha' in t.lower()):
+        return 'other'
 
-    return False
+    # 5) 캡차 없음
+    return 'none'
+
 
 
 def run_site(task: AnalysisTask):
@@ -163,8 +176,9 @@ def run_site(task: AnalysisTask):
         # (추가로 Content-Security-Policy, HSTS 등 검사 가능)
 
         # 2-2) HTML 기반 캡챠 탐지
-        has_captcha = detect_captcha(source)
-
+        captcha_type = detect_captcha_type(source)
+        has_captcha = (captcha_type != 'none')
+        _update(task, 'completed', {'captcha_type': captcha_type}, end=True)
     except Exception as e:
         # HTTP 요청 실패 시에도 “전체 실패”로 표시하지 않음
         # 단, vulnerabilities에 실패 이유를 기록
@@ -177,10 +191,12 @@ def run_site(task: AnalysisTask):
         'vulnerabilities': vulnerabilities,         # 취약점 및 오류 메시지 목록
         'is_phishing': is_phishing,                 # AI 예측 결과
         'phishing_confidence': phishing_confidence, # AI 예측 확신도
+        'captcha_type': captcha_type,
         'has_captcha': has_captcha,                 # HTML에서 탐지한 캡챠 유무
     }
     _update(task, 'completed', result, end=True)
 
+    return captcha_type, has_captcha
 
 def run_captcha(task: AnalysisTask):
     """
@@ -190,18 +206,46 @@ def run_captcha(task: AnalysisTask):
     - bypass 성공 시 run_packet 호출
     """
     _update(task, 'running', start=True)
-    driver = None
     try:
         driver = get_bypass_driver(task.request.site_url)
         if driver is None:
             raise RuntimeError("CAPTCHA bypass failed")
-            
-        _update(task, 'completed',
-                {'captcha_detected': True, 'bypass_success': True},
-                end=True)
-
+    
+        
         # 6) bypass 성공하면 run_packet 호출
         if driver:
+            wait = WebDriverWait(driver, 5)
+
+            # 1) 폼 안의 버튼/인풋부터 시도
+            submit_elems = driver.find_elements(
+                By.CSS_SELECTOR,
+                "form button[type=submit], form input[type=submit]"
+            )
+
+            # 2) 없으면 페이지 전체에서 한 번 더
+            if not submit_elems:
+                submit_elems = driver.find_elements(
+                    By.CSS_SELECTOR,
+                    "button[type=submit], input[type=submit]"
+                )
+
+            if submit_elems:
+                btn = submit_elems[0]
+                # 클릭 가능해질 때까지 기다리기
+                wait.until(EC.element_to_be_clickable(btn))
+                print(f"[Info] 제출 버튼 클릭: <{btn.tag_name} class=\"{btn.get_attribute('class')}\"…>")
+                btn.click()
+                # 페이지 전환 대기
+                try:
+                    wait.until(EC.staleness_of(btn))
+                except:
+                    time.sleep(1)
+                print("=== AFTER SUBMIT ===")
+                print(driver.page_source[:500])
+            else:
+                print("[Info] 제출 버튼이 발견되지 않아 클릭을 건너뜁니다.")
+
+            time.sleep(1)
             run_packet(task, driver)
         else:
             _update(
