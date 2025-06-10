@@ -6,7 +6,7 @@ SOLVE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "Capcha", "breakrecapcha_v2")
 )
 sys.path.insert(0, SOLVE_DIR)  
-from ..Capcha.breakrecapcha_v2 import main as get_bypass_driver
+from .Capcha.breakrecapcha_v2.solve import main as get_bypass_driver
 from django.utils import timezone
 from .models import AnalysisTask
 
