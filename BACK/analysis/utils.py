@@ -206,54 +206,47 @@ def run_captcha(task: AnalysisTask):
     - bypass 성공 시 run_packet 호출
     """
     _update(task, 'running', start=True)
+    driver = None
     try:
         driver = get_bypass_driver(task.request.site_url)
         if driver is None:
             raise RuntimeError("CAPTCHA bypass failed")
-    
         
         # 6) bypass 성공하면 run_packet 호출
-        if driver:
-            wait = WebDriverWait(driver, 5)
+   
+        wait = WebDriverWait(driver, 5)
 
             # 1) 폼 안의 버튼/인풋부터 시도
+        submit_elems = driver.find_elements(
+            By.CSS_SELECTOR,
+            "form button[type=submit], form input[type=submit]"
+        )
+
+        # 2) 없으면 페이지 전체에서 한 번 더
+        if not submit_elems:
             submit_elems = driver.find_elements(
                 By.CSS_SELECTOR,
-                "form button[type=submit], form input[type=submit]"
+                "button[type=submit], input[type=submit]"
             )
 
-            # 2) 없으면 페이지 전체에서 한 번 더
-            if not submit_elems:
-                submit_elems = driver.find_elements(
-                    By.CSS_SELECTOR,
-                    "button[type=submit], input[type=submit]"
-                )
-
-            if submit_elems:
-                btn = submit_elems[0]
-                # 클릭 가능해질 때까지 기다리기
-                wait.until(EC.element_to_be_clickable(btn))
-                print(f"[Info] 제출 버튼 클릭: <{btn.tag_name} class=\"{btn.get_attribute('class')}\"…>")
-                btn.click()
-                # 페이지 전환 대기
-                try:
-                    wait.until(EC.staleness_of(btn))
-                except:
-                    time.sleep(1)
-                print("=== AFTER SUBMIT ===")
-                print(driver.page_source[:500])
-            else:
-                print("[Info] 제출 버튼이 발견되지 않아 클릭을 건너뜁니다.")
-
-            time.sleep(1)
-            run_packet(task, driver)
+        if submit_elems:
+            btn = submit_elems[0]
+            # 클릭 가능해질 때까지 기다리기
+            wait.until(EC.element_to_be_clickable(btn))
+            print(f"[Info] 제출 버튼 클릭: <{btn.tag_name} class=\"{btn.get_attribute('class')}\"…>")
+            btn.click()
+            # 페이지 전환 대기
+            try:
+                wait.until(EC.staleness_of(btn))
+            except:
+                time.sleep(1)
+            print("=== AFTER SUBMIT ===")
+            print(driver.page_source[:500])
         else:
-            _update(
-                task,
-                'failed',
-                {'error': 'Captcha bypass failed; skipping packet analysis.'},
-                end=True
-            )
+            print("[Info] 제출 버튼이 발견되지 않아 클릭을 건너뜁니다.")
+
+        time.sleep(1)
+        run_packet(task, driver)
 
     except Exception as e:
         _update(task, 'failed', {'error': str(e)}, end=True)
@@ -272,7 +265,7 @@ def run_packet(task: AnalysisTask, driver=None):
     ※ is_malicious가 dict가 아니라 문자열을 리턴해도 안전하게 처리하도록 수정됨
     """
     _update(task, "running", start=True)
-
+    
     try:
         # 1) 분석 대상 URL 결정
         url = getattr(task.request, "packet_url", None) or task.request.site_url
@@ -285,40 +278,14 @@ def run_packet(task: AnalysisTask, driver=None):
             result = {}
             # 필요하다면 취약점에 기록
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
-
-
         result['input_malicious'] = input_url(url, driver=driver)
-        if not result['is_mal'] and not result['input_malicious']:
-            result['is_phishing'] = False
-        else:
-            result['is_phishing'] = True
         # 3) 결과 저장
         result_payload = result
         _update(task, "completed", result_payload, end=True)
 
-
-    # 2) is_malicious 호출 및 반환값 타입 검사
-    try:
-        result = is_malicious(url)
     except Exception as e:
-        # is_malicious 자체 호출 실패 시 stub 처리
-        result = {}
-        # 필요하다면 취약점에 기록
-        task.result = {'error': f"is_malicious 호출 실패: {e}"}
+        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
+        _update(task, "failed", {"error": str(e)}, end=True)
     finally:
         if driver:
             driver.quit()
-
-    result['input_malicious'] = input_url(url)
-    print(result)
-    if not result['is_mal'] and not result['input_malicious']:
-        result['is_phishing'] = False
-    else:
-        result['is_phishing'] = True
-    # 3) 결과 저장
-    result_payload = result
-    _update(task, "completed", result_payload, end=True)
-
-    # except Exception as e:
-    #     # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
-    #     _update(task, "failed", {"error": str(e)}, end=True)
