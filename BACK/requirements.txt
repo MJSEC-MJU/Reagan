@@ -68,3 +68,4 @@ wsproto==1.2.0
 gunicorn
 undetected-chromedriver==3.5.5
 selenium-wire
+blinker==1.4.0
