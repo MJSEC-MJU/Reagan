@@ -134,11 +134,12 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 CORS_ALLOW_CREDENTIALS = False
 CORS_ALLOW_HEADERS     = ["content-type"]
-CORS_ALLOW_METHODS     = ["GET", "POST", "OPTIONS"]
 
+CORS_ALLOW_METHODS     = ["GET", "POST", "OPTIONS"] 
 CSRF_TRUSTED_ORIGINS = [
     "https://reagan.mjsec.kr"
 ]
+
 
 # ─────────────────────────────────────────────────────────────
 # Django REST framework
