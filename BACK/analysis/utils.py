@@ -252,9 +252,29 @@ def run_packet(task: AnalysisTask, driver=None):
         result_payload = result
         _update(task, "completed", result_payload, end=True)
 
+
+    # 2) is_malicious 호출 및 반환값 타입 검사
+    try:
+        result = is_malicious(url)
     except Exception as e:
-        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
-        _update(task, "failed", {"error": str(e)}, end=True)
+        # is_malicious 자체 호출 실패 시 stub 처리
+        result = {}
+        # 필요하다면 취약점에 기록
+        task.result = {'error': f"is_malicious 호출 실패: {e}"}
     finally:
         if driver:
             driver.quit()
+
+    result['input_malicious'] = input_url(url)
+    print(result)
+    if not result['is_mal'] and not result['input_malicious']:
+        result['is_phishing'] = False
+    else:
+        result['is_phishing'] = True
+    # 3) 결과 저장
+    result_payload = result
+    _update(task, "completed", result_payload, end=True)
+
+    # except Exception as e:
+    #     # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
+    #     _update(task, "failed", {"error": str(e)}, end=True)
