@@ -32,6 +32,10 @@ class AnalysisTask(models.Model):
     def __str__(self):
         return f'{self.request.id}-{self.task_type}'
 
+class White_list(models.Model):
+    site_url = models.URLField()
+    
+
 
 @receiver(post_save, sender=AnalysisTask)
 def update_request_status(sender, instance, **kwargs):

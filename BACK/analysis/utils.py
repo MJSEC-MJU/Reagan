@@ -27,8 +27,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # AI 기반 피싱 예측 모듈 import
-from detection_ai.predictor import predict_url
-
+from .AI.detection_ai.predictor import predict_url
 
 def _update(task: AnalysisTask, status: str, result=None, start=False, end=False):
     """
@@ -243,7 +242,12 @@ def run_packet(task: AnalysisTask, driver=None):
             # 필요하다면 취약점에 기록
             task.result = {'error': f"is_malicious 호출 실패: {e}"}
 
+
         result['input_malicious'] = input_url(url, driver=driver)
+        if not result['is_mal'] and not result['input_malicious']:
+            result['is_phishing'] = False
+        else:
+            result['is_phishing'] = True
         # 3) 결과 저장
         result_payload = result
         _update(task, "completed", result_payload, end=True)

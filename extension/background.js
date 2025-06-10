@@ -51,9 +51,10 @@ async function decide(url) {
   const json = await res.json();
 
   const siteTask   = json.tasks?.find(t => t.task_type === "site");
+  const packetTask   = json.tasks?.find(t => t.task_type === "packet");
   const siteResult = siteTask?.result || {};
-  const block = siteResult.is_phishing === true &&
-                (siteResult.phishing_confidence ?? 0) >= CONF_THRESHOLD;
+  const packetResult = packetTask?.result || {};
+  const block = siteResult.is_phishing === true || packetResult.is_phishing === true
 
   cache[url]     = { ts: Date.now(), verdict: block, result: siteResult };
   lastSiteResult = siteResult;
