@@ -5,8 +5,8 @@ from selenium import webdriver
 SOLVE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "Capcha", "breakrecapcha_v2")
 )
-sys.path.insert(0, SOLVE_DIR)   # 이 줄이 반드시 와야 합니다
-from solve import main as get_bypass_driver
+sys.path.insert(0, SOLVE_DIR)  
+from ..Capcha.breakrecapcha_v2 import main as get_bypass_driver
 from django.utils import timezone
 from .models import AnalysisTask
 
