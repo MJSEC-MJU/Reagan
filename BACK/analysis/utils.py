@@ -3,7 +3,7 @@ import sys, os
 import re
 from selenium import webdriver
 SOLVE_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "Capcha", "breakrecapcha_v2")
+    os.path.join(os.path.dirname(__file__), "Capcha", "breakrecapcha_v2")
 )
 sys.path.insert(0, SOLVE_DIR)  
 from .Capcha.breakrecapcha_v2.solve import main as get_bypass_driver
