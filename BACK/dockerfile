@@ -1,5 +1,4 @@
-# BACK/dockerfile
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Python 최적화
 ENV PYTHONDONTWRITEBYTECODE=1

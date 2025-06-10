@@ -1,4 +1,14 @@
 # your_app/backends/captcha_analysis.py
+import sys, os
+import re
+from selenium import webdriver
+SOLVE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "Capcha", "breakrecapcha_v2")
+)
+sys.path.insert(0, SOLVE_DIR)  
+from .Capcha.breakrecapcha_v2.solve import main as get_bypass_driver
+from django.utils import timezone
+from .models import AnalysisTask
 
 from django.utils import timezone
 from .models import AnalysisTask
@@ -85,31 +95,42 @@ def analyze_phishing(source: str, base_url: str) -> bool:
     return False
 
 
-def detect_captcha(source: str) -> bool:
+from bs4 import BeautifulSoup
+
+def detect_captcha_type(source: str) -> str:
     """
-    HTML 소스 내 CAPTCHA 요소 탐지:
-    - class/id, iframe src, img alt 검사
+    reCAPTCHA v2/v3, hCaptcha, 기타, 없음 구분
+    반환값: 'recaptcha_v3', 'recaptcha_v2_invisible', 'recaptcha_v2', 'hcaptcha', 'other', 'none'
     """
     soup = BeautifulSoup(source, 'html.parser')
 
-    # 1) class 혹은 id에 'captcha' 키워드가 포함된 태그가 있는지 확인
-    for tag in soup.find_all():
-        for val in tag.attrs.values():
-            if 'captcha' in str(val).lower():
-                return True
+    # 1) reCAPTCHA v2 위젯 검사 (visible/invisible)
+    div = soup.find('div', class_='g-recaptcha')
+    if div:
+        size = div.get('data-size', '').lower()
+        if size == 'invisible':
+            return 'recaptcha_v2_invisible'
+        else:
+            return 'recaptcha_v2'
 
-    # 2) reCAPTCHA iframe 검사
+    # 2) reCAPTCHA v3: render 파라미터가 있는 API 스크립트
+    for script in soup.find_all('script', src=True):
+        src = script['src']
+        if 'recaptcha/api.js' in src and 'render=' in src:
+            return 'recaptcha_v3'
+
+    # 3) hCaptcha iframe 검사
     for iframe in soup.find_all('iframe', src=True):
-        src = iframe['src']
-        if 'recaptcha' in src.lower() or 'captcha' in src.lower():
-            return True
+        if 'hcaptcha.com' in iframe['src'].lower():
+            return 'hcaptcha'
 
-    # 3) 이미지 ALT 텍스트 검사
-    for img in soup.find_all('img', alt=True):
-        if 'captcha' in img['alt'].lower():
-            return True
+    # 4) 기타 이미지 CAPTCHA
+    if soup.find('img', alt=lambda t: t and 'captcha' in t.lower()):
+        return 'other'
 
-    return False
+    # 5) 캡차 없음
+    return 'none'
+
 
 
 def run_site(task: AnalysisTask):
@@ -155,8 +176,9 @@ def run_site(task: AnalysisTask):
         # (추가로 Content-Security-Policy, HSTS 등 검사 가능)
 
         # 2-2) HTML 기반 캡챠 탐지
-        has_captcha = detect_captcha(source)
-
+        captcha_type = detect_captcha_type(source)
+        has_captcha = (captcha_type != 'none')
+        _update(task, 'completed', {'captcha_type': captcha_type}, end=True)
     except Exception as e:
         # HTTP 요청 실패 시에도 “전체 실패”로 표시하지 않음
         # 단, vulnerabilities에 실패 이유를 기록
@@ -169,95 +191,62 @@ def run_site(task: AnalysisTask):
         'vulnerabilities': vulnerabilities,         # 취약점 및 오류 메시지 목록
         'is_phishing': is_phishing,                 # AI 예측 결과
         'phishing_confidence': phishing_confidence, # AI 예측 확신도
+        'captcha_type': captcha_type,
         'has_captcha': has_captcha,                 # HTML에서 탐지한 캡챠 유무
     }
     _update(task, 'completed', result, end=True)
 
+    return captcha_type, has_captcha
 
 def run_captcha(task: AnalysisTask):
     """
     CAPTCHA 우회 작업:
-    - undetected-chromedriver 기반으로 브라우저를 실행하여
-      가능한한 사람처럼 보이도록 Stealth 옵션 설정
-    - 페이지 로드 후 CAPTCHA 요소 탐지
-    - (추후) 실제 캡챠 솔버 로직을 삽입하여 bypass_success 결정
+    - 실제 캡챠 솔버 로직을 삽입하여 bypass_success 결정
     - 결과 저장
     - bypass 성공 시 run_packet 호출
     """
     _update(task, 'running', start=True)
-
-    options = uc.ChromeOptions()
-    options.headless = True
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-infobars")
-    options.add_argument("--window-size=1366,768")
-
-    # 랜덤 User-Agent
-    ua = UserAgent().random
-    options.add_argument(f"--user-agent={ua}")
-
     driver = None
     try:
-        # 1) Stealth 크롬 실행
-        driver = uc.Chrome(options=options)
-
-        # 2) 해당 사이트로 이동
-        driver.get(task.request.site_url)
-        # 사람처럼 랜덤 딜레이
-        time.sleep(random.uniform(2.0, 4.5))
-
-        # 3) CAPTCHA 요소가 있는지 탐지 (iframe, input[class*='captcha'] 등)
-        captcha_detected = False
-        try:
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src, 'recaptcha')]"))
-            )
-            captcha_detected = True
-        except:
-            try:
-                WebDriverWait(driver, 3).until(
-                    EC.presence_of_element_located((By.XPATH, "//input[contains(@class, 'captcha')]"))
-                )
-                captcha_detected = True
-            except:
-                captcha_detected = False
-
-        # 4) (선택) 실제 캡챠 솔버 로직 추가
-        #    예시:
-        #    if captcha_detected:
-        #        # 스크린샷 → OCR → 자동 입력 → 확인 버튼 클릭 ...
-        #        bypass_success = 실제_우회_결과  # True/False
-        #    else:
-        #        bypass_success = True  # 이미 캡챠가 없는 상태
-        #
-        #    아래에서는 예제로 bypass_success = captcha_detected으로 가정합니다.
-        if captcha_detected:
-            # TODO: 실제 캡챠 솔버 로직을 구현한 뒤 bypass_success 값을 결정하세요.
-            bypass_success = True
-        else:
-            bypass_success = True
-
-        # 5) 결과 저장
-        result = {
-            'site_url': task.request.site_url,
-            'captcha_detected': captcha_detected,
-            'bypass_success': bypass_success,
-            'note': '스텔스 크롬으로 페이지 로드 및 탐지 완료',
-        }
-        _update(task, 'completed', result, end=True)
-
+        driver = get_bypass_driver(task.request.site_url)
+        if driver is None:
+            raise RuntimeError("CAPTCHA bypass failed")
+        
         # 6) bypass 성공하면 run_packet 호출
-        if bypass_success:
-            run_packet(task)
-        else:
-            _update(
-                task,
-                'failed',
-                {'error': 'Captcha bypass failed; skipping packet analysis.'},
-                end=True
+   
+        wait = WebDriverWait(driver, 5)
+
+            # 1) 폼 안의 버튼/인풋부터 시도
+        submit_elems = driver.find_elements(
+            By.CSS_SELECTOR,
+            "form button[type=submit], form input[type=submit]"
+        )
+
+        # 2) 없으면 페이지 전체에서 한 번 더
+        if not submit_elems:
+            submit_elems = driver.find_elements(
+                By.CSS_SELECTOR,
+                "button[type=submit], input[type=submit]"
             )
+
+        if submit_elems:
+            btn = submit_elems[0]
+            # 클릭 가능해질 때까지 기다리기
+            wait.until(EC.element_to_be_clickable(btn))
+            print(f"[Info] 제출 버튼 클릭: <{btn.tag_name} class=\"{btn.get_attribute('class')}\"…>")
+            btn.click()
+            # 페이지 전환 대기
+            try:
+                wait.until(EC.staleness_of(btn))
+            except:
+                time.sleep(1)
+            print("=== AFTER SUBMIT ===")
+            print(driver.page_source[:500])
+        else:
+            print("[Info] 제출 버튼이 발견되지 않아 클릭을 건너뜁니다.")
+
+        time.sleep(1)
+        run_packet(task, driver)
 
     except Exception as e:
         _update(task, 'failed', {'error': str(e)}, end=True)
@@ -266,7 +255,7 @@ def run_captcha(task: AnalysisTask):
             driver.quit()
 
 
-def run_packet(task: AnalysisTask):
+def run_packet(task: AnalysisTask, driver=None):
     """
     네트워크 패킷 분석 작업:
       1) task.request에서 packet_url이 있으면 그걸 사용, 없으면 site_url 사용
@@ -276,29 +265,27 @@ def run_packet(task: AnalysisTask):
     ※ is_malicious가 dict가 아니라 문자열을 리턴해도 안전하게 처리하도록 수정됨
     """
     _update(task, "running", start=True)
-
-    # 1) 분석 대상 URL 결정
-    url = getattr(task.request, "packet_url", None) or task.request.site_url
-
-    # 2) is_malicious 호출 및 반환값 타입 검사
+    
     try:
-        result = is_malicious(url)
+        # 1) 분석 대상 URL 결정
+        url = getattr(task.request, "packet_url", None) or task.request.site_url
+
+        # 2) is_malicious 호출 및 반환값 타입 검사
+        try:
+            result = is_malicious(url)
+        except Exception as e:
+            # is_malicious 자체 호출 실패 시 stub 처리
+            result = {}
+            # 필요하다면 취약점에 기록
+            task.result = {'error': f"is_malicious 호출 실패: {e}"}
+        result['input_malicious'] = input_url(url, driver=driver)
+        # 3) 결과 저장
+        result_payload = result
+        _update(task, "completed", result_payload, end=True)
+
     except Exception as e:
-        # is_malicious 자체 호출 실패 시 stub 처리
-        result = {}
-        # 필요하다면 취약점에 기록
-        task.result = {'error': f"is_malicious 호출 실패: {e}"}
-
-    result['input_malicious'] = input_url(url)
-    print(result)
-    if not result['is_mal'] and not result['input_malicious']:
-        result['is_phishing'] = False
-    else:
-        result['is_phishing'] = True
-    # 3) 결과 저장
-    result_payload = result
-    _update(task, "completed", result_payload, end=True)
-
-    # except Exception as e:
-    #     # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
-    #     _update(task, "failed", {"error": str(e)}, end=True)
+        # 분석 중 예외 발생 시 상태를 'failed'로 업데이트
+        _update(task, "failed", {"error": str(e)}, end=True)
+    finally:
+        if driver:
+            driver.quit()
