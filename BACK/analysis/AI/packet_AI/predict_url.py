@@ -29,7 +29,7 @@ def classify_url(url: str) -> dict:
 
     prob = clf.predict_proba(df)[0][1]     # 악성 확률
     label = True if prob >= THRESHOLD else False
-    return {"is_phishing": label, "phishing_confidence": round(float(prob), 4)}
+    return {"is_mal": label, "phishing_confidence": round(float(prob), 4)}
 
 def is_malicious(url: str) -> bool:
     return classify_url(url)
