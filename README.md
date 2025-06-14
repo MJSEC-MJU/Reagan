@@ -24,7 +24,14 @@
 > **3단계 AI 파이프라인 기반 악성 URL 탐지 시스템**
 
 ---
+## 🤝 기여자
 
+| Component             | Description                                       | Contributor                                                                                                      |
+|-----------------------|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| URL Detection AI      | 텍스트·메타데이터 기반 1차 필터링                 | [<img src="https://github.com/ORI-MORI.png" width="50" height="50" alt="이주오"><br><sub>이주오</sub>](https://github.com/ORI-MORI)     |
+| Packet Analysis AI    | 네트워크 패킷 레벨 심층 분석                       | [<img src="https://github.com/yunttai.png" width="50" height="50" alt="이윤태"><br><sub>이윤태</sub>](https://github.com/yunttai)      |
+| Break_Captcha_AI      | reCAPTCHA V2 자동 우회 (breakrecapcha_v2 리포지터리) | [<img src="https://github.com/jongcoding.png" width="50" height="50" alt="이종윤"><br><sub>이종윤</sub>](https://github.com/jongcoding) |
+---
 ## 🔗 목차
 
 1. [소개](#소개)  
@@ -35,7 +42,7 @@
 6. [진행 현황](#진행-현황)  
 7. [평가지표](#평가지표)  
 8. [참고 논문](#참고-논문)  
-9. [기여자](#기여자)  
+
 
 ---
 
@@ -176,13 +183,10 @@ docker-compose up -d --build
 
 ---
 
-## 🤝 기여자
 
-| 역할                           | 이름  |
-| ---------------------------- | --- |
-| Frontend & URL Detection AI  | 이주오 |
-| Backend & Packet Analysis AI | 이윤태 |
-| DevOps & Break\_Captcha\_AI  | 이종윤 |
+
+
+
 
 ---
 
