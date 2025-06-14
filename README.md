@@ -79,6 +79,8 @@ flowchart TD
 
 ## 🏛 시스템 아키텍처
 
+![image](https://github.com/user-attachments/assets/42297287-2d72-44e2-abe0-0a4923d79eab)
+
 ```mermaid
 flowchart TB
     subgraph Client["클라이언트"]
@@ -143,8 +145,10 @@ docker-compose up -d --build
 3. **Docker Hub**에 이미지 푸시
 4. **자동 배포** → GCP VM (Nginx + Docker Compose)
 5. **모니터링 & 알림** (이메일, Slack 등)
-
+![image](https://github.com/user-attachments/assets/a690b801-34b8-473b-9091-f7d97b2820da)
 ---
+
+
 
 ## 📈 진행 현황
 
